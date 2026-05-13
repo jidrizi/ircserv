@@ -41,3 +41,15 @@ bool	Server::isValidNickname(const std::string& nickname) const
 	return true;
 }
 
+bool	Server::isNicknameInUse(const std::string& nickname, int excludingFd) const
+{
+	for (std::vector<ClientSession*>::const_iterator it = clients.begin(); it != clients.end(); ++it)
+	{
+		if ((*it)->fd() == excludingFd)
+			continue;
+		if ((*it)->user().nickname == nickname)
+			return true;
+	}
+	return false;
+}
+
