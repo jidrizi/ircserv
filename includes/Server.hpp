@@ -5,12 +5,16 @@
 # include <csignal>
 # include <cstdlib>
 # include <cstring>
+# include <cctype>
 # include <iostream>
 # include <map>
 # include <set>
 # include <stdexcept>
 # include <string>
 # include <vector>
+#include <algorithm>
+#include <sstream>
+
 
 # include <arpa/inet.h>
 # include <fcntl.h>
@@ -28,8 +32,20 @@
 
 class Server
 {
+    private:
+        int             port;
+        std::string     password;
+        static bool     stopSignal;
+    
+    public:
+    int	        parseArgs(char** argv);
+    static void	signalHandler(int signalNumber);
+    void        run();
+    
+};
 
-}
+int	        printError(const std::string& errorMessage);
 
 
-int	printError(const std::string& errorMessage);
+
+#endif

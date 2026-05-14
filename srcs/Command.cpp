@@ -6,11 +6,11 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/13 12:02:43 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/13 15:58:23 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/14 19:06:29 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "Command.hpp"
+#include "ft_irc.hpp"
 
 CommandType	getCommandType(const std::string& command)
 {
@@ -28,6 +28,7 @@ CommandType	getCommandType(const std::string& command)
 	if (command == "KICK") return CMD_KICK;
 	if (command == "MODE") return CMD_MODE;
 	if (command == "TOPIC") return CMD_TOPIC;
+	std::cout << "Unkown command" << std::endl;
 	return CMD_UNKNOWN;
 }
 
@@ -88,7 +89,9 @@ Command	parseCommand(const std::string& line)
 
 	std::size_t separator = normalized.find(' ');
 	if (separator == std::string::npos)
+	{
 		command.commandName = normalized;
+	}
 	else
 	{
 		command.commandName = normalized.substr(0, separator);
@@ -99,6 +102,11 @@ Command	parseCommand(const std::string& line)
 
 	command.type = getCommandType(command.commandName);
 	command.paramList = splitParams(command.paramsText);
+
+	
+	std::cout << "command: " << command.commandName << std::endl;
+	for (int i = 0; i < command.paramList.size(); i++)
+		std::cout << "Params: " << command.paramList[i] << std::endl;
 	return command;
 }
 
