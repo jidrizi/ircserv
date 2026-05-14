@@ -1,5 +1,9 @@
+#include "Server.hpp"
+
+#include <algorithm>
 #include <cctype>
 #include <sstream>
+
 
 bool Server::stopSignal = false;
 
@@ -39,4 +43,47 @@ void	Server::signalHandler(int signalNumber)
 {
 	(void)signalNumber;
 	stopSignal = true;
+}
+
+void	Server::initSocket()
+{
+	char hostname[1024];
+	if (gethostname(hostname, sizeof(hostname)) == -1)
+		throw std::runtime_error("gethostname() failed");
+	host = hostname;
+
+	serverSocketFd = socket(AF_INET, SOCK_STREAM, 0);
+	if (serverSocketFd == -1)
+		throw std::runtime_error("socket() failed");
+
+	int yes = 1;
+	if (setsockopt(serverSocketFd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1)
+		throw std::runtime_error("setsockopt(SO_REUSEADDR) failed");
+	if (fcntl(serverSocketFd, F_SETFL, O_NONBLOCK) == -1)
+		throw std::runtime_error("fcntl(O_NONBLOCK) failed");
+
+	struct sockaddr_in serverAddr;
+	std::memset(&serverAddr, 0, sizeof(serverAddr));
+	serverAddr.sin_family = AF_INET;
+	serverAddr.sin_addr.s_addr = INADDR_ANY;
+	serverAddr.sin_port = htons(port);
+
+	if (bind(serverSocketFd, reinterpret_cast<struct sockaddr*>(&serverAddr), sizeof(serverAddr)) == -1)
+		throw std::runtime_error("bind() failed");
+	if (listen(serverSocketFd, SOMAXCONN) == -1)
+		throw std::runtime_error("listen() failed");
+
+	struct pollfd pfd;
+	pfd.fd = serverSocketFd;
+	pfd.events = POLLIN;
+	pfd.revents = 0;
+	pollFds.push_back(pfd);
+}
+
+void	Server::run()
+{
+	initSocket();
+	std::cout << GRE << "Server <" << serverSocketFd << "> connected" << WHI << std::endl;
+	std::cout << "Listening on port " << port << std::endl;
+
 }

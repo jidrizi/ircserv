@@ -41,12 +41,14 @@ class Server
 		Server(const Server& rhs);
 		Server& operator=(const Server& rhs);
 
+		void	initSocket();
+
 		public:
 		Server();
 		~Server();
 
 		int		parseArgs(char** argv);
-		// void	run();
+		void	run();
 		static void signalHandler(int signalNumber);
 };
 

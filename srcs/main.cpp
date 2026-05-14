@@ -13,7 +13,7 @@ int main(int argc, char** argv)
 	{
 		signal(SIGINT, Server::signalHandler);
 		signal(SIGQUIT, Server::signalHandler);
-		// server.run();
+		server.run();
 	}
 	catch (const std::exception& e)
 	{
