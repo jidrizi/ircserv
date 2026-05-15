@@ -17,39 +17,35 @@ std::string	UserProfile::source() const
 	return nickname + "!" + username + "@" + hostname;
 }
 
-
-
-bool	Server::isValidNickname(const std::string& nickname) const
+ClientSession::ClientSession(int fd, const std::string& ipAddress)
+	: fdSocket(fd), ipAddr(ipAddress)
 {
-	if (nickname.empty())
-		return false;
-	if (nickname.size() > 30)
-		return false;
-	if (nickname[0] == '#' || nickname[0] == '&' || nickname[0] == ':'
-		|| nickname[0] == '@' || std::isdigit(nickname[0]) || std::isspace(nickname[0]))
-		return false;
-	if (nickname.size() < 3)
-		return false;
-	for (std::size_t i = 0; i < nickname.size(); ++i)
-	{
-		const char c = nickname[i];
-		if (!std::isalnum(c) && c != '\\' && c != '|'
-			&& c != '[' && c != ']' && c != '{'
-			&& c != '}' && c != '-' && c != '_')
-			return false;
-	}
-	return true;
+	userData.hostname = ipAddress;
 }
 
-bool	Server::isNicknameInUse(const std::string& nickname, int excludingFd) const
+ClientSession::~ClientSession()
 {
-	for (std::vector<ClientSession*>::const_iterator it = clients.begin(); it != clients.end(); ++it)
-	{
-		if ((*it)->fd() == excludingFd)
-			continue;
-		if ((*it)->user().nickname == nickname)
-			return true;
-	}
-	return false;
+	if (fdSocket >= 0)
+		close(fdSocket);
+}
+
+int	ClientSession::fd() const
+{
+	return fdSocket;
+}
+
+const std::string&	ClientSession::ipAddress() const
+{
+	return ipAddr;
+}
+
+UserProfile&	ClientSession::user()
+{
+	return userData;
+}
+
+const UserProfile&	ClientSession::user() const
+{
+	return userData;
 }
 
