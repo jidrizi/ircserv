@@ -10,6 +10,9 @@ SRCDIR = srcs/
 
 SRCS = \
 	$(SRCDIR)main.cpp \
+	$(SRCDIR)Client.cpp \
+	$(SRCDIR)Command.cpp \
+	$(SRCDIR)Handle.cpp \
 
 BIN_DIR = bin
 
