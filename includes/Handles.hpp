@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/15 16:43:00 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/15 22:49:02 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/15 23:39:55 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,10 +20,16 @@ class Handles{
         std::map<std::string, Channel*> channels;
 
     public:
-        int     handleJoin(ClientSession& client, Command& command);
-        void	processClientLine(ClientSession& client, const std::string& line);
-        std::vector<std::string> splitByComma(const std::string& text) const;
-        bool	isValidChannelName(const std::string& channelName) const;
+        int                         handleJoin(ClientSession& client, Command& command);
+        int                         handleTopic(ClientSession& client, Command& command);
+        
+        
+        void                    	processClientLine(ClientSession& client, const std::string& line);
+        std::vector<std::string>    splitByComma(const std::string& text) const;
+        bool	                    isValidChannelName(const std::string& channelName) const;
+        void	                    broadcastToChannel(const Channel& channel, const std::string& message, int exceptFd);
+
+
 };
 
 

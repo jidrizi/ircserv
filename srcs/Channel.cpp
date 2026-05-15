@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/14 14:07:15 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/15 23:07:32 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/15 23:42:52 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -96,6 +96,11 @@ void	Channel::addMember(int fd)
 	members.insert(fd);
 }
 
+void	Channel::addInvite(int fd)
+{
+	invitedUsers.insert(fd);
+}
+
 void	Channel::removeInvite(int fd)
 {
 	invitedUsers.erase(fd);
@@ -109,4 +114,9 @@ const std::set<int>&	Channel::getMembers() const
 void	Channel::addOperator(int fd)
 {
 	operators.insert(fd);
+}
+
+bool	Channel::hasOperator(int fd) const
+{
+	return operators.count(fd) != 0;
 }

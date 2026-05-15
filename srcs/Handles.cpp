@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/15 16:26:57 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/15 23:04:47 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/15 23:43:42 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -129,3 +129,45 @@ int     Handles::handleJoin(ClientSession& client, Command& command)
 	return 0;
 }
 
+void	Handles::broadcastToChannel(const Channel& channel, const std::string& message, int exceptFd)
+{
+	const std::set<int>& members = channel.getMembers();
+	for (std::set<int>::const_iterator it = members.begin(); it != members.end(); ++it)
+	{
+		if (*it == exceptFd)
+			continue;
+		// sendToClient(*it, message);
+	}
+}
+
+
+int Handles::handleTopic(ClientSession& client, Command& command)
+{
+	const std::string channelName = command.paramList[0];
+	std::string name = "";
+	int i = 1;
+	while (i < command.paramList.size())
+	{
+		name += command.paramList[i];
+		name += " ";
+		i++;
+	}
+	std::map<std::string, Channel*>::iterator chIt = channels.find(channelName);
+	if (chIt == channels.end())
+		return (-1); //send also err msg
+	Channel& channel = *chIt->second;
+	if (!channel.hasMember(client.fd()))
+		return (-1); // errormsg notonchannel
+	if (name.empty())
+	{
+		if (!channel.getTopic().empty())
+			return 0; //rpl topic
+		else
+			return 0; //rpl notopic
+	if (channel.isTopicRestricted() && !channel.hasOperator(client.fd()))
+		return (-1); //err CHANOPRIVSNEEDED
+	channel.setTopic(name);
+	broadcastToChannel(channel, "RPLMEGGASE", -1); //switch RPLMESSAGE with rpl_topic
+	return 0;
+	}
+}

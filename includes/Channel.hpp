@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/14 21:07:54 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/15 23:08:33 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/15 23:43:14 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,6 +59,8 @@ class Channel
         
 
         void    	            removeInvite(int fd);
+        void	                addInvite(int fd);
+        
 		bool    				isInvited(int fd) const;
         bool			    	isInviteOnly() const;
 		bool	    			isTopicRestricted() const;
@@ -68,6 +70,7 @@ class Channel
 		void				    setTopicRestricted(bool value);
 
         void	                addOperator(int fd);
+        bool	                hasOperator(int fd) const;
 };
 
 #endif
