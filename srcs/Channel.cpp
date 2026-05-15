@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/14 14:07:15 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/15 15:03:55 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/15 22:46:09 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,4 +44,9 @@ void Channel::clearKey()
 {
     key.clear();
     keyEnabled = false;
+}
+
+bool	Channel::hasMember(int fd) const
+{
+	return members.count(fd) != 0;
 }

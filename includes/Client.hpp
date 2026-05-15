@@ -1,22 +1,29 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   ft_irc.hpp                                         :+:      :+:    :+:   */
+/*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/05/14 21:07:59 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/15 22:41:39 by fefo             ###   ########.fr       */
+/*   Created: 2026/05/15 16:37:22 by fefo              #+#    #+#             */
+/*   Updated: 2026/05/15 22:50:29 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef FT_IRC_HPP
-# define FT_IRC_HPP
+#ifndef CLIENT_HPP
+# define CLIENT_HPP
 
-# include "Command.hpp"
-# include "Server.hpp"
-# include "Channel.hpp"
-# include "Handles.hpp"
-# include "Client.hpp"
+#include "ft_irc.hpp"
+
+class ClientSession
+{
+	private:
+		int			fdSocket;
+		std::string	ipAddr;
+		std::string	recvBufferData;
+		std::string	sendBufferData;
+    public:
+        int     fd()    const { return fdSocket; };
+};
 
 #endif

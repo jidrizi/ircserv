@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/14 21:07:54 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/15 14:38:28 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/15 22:31:43 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,10 +19,13 @@
 class Channel
 {
     private:
-        std::string     name;
-        std::string     topic;
-        std::string     key;
-        bool            keyEnabled;
+        std::map<std::string, Channel*> channels;
+        std::string             name;
+        std::string             topic;
+        std::string             key;
+        bool                    keyEnabled;
+        std::set<int>          members;
+        
     public:
         Channel(const std::string& channelName);
         ~Channel();
@@ -33,6 +36,7 @@ class Channel
         void setTopic(const std::string& value);
         void setKey(const std::string& password);
         void clearKey();
+        bool hasMember(int fd) const;
 };
 
 #endif
