@@ -148,3 +148,38 @@ int	Handle::handlePreCommandChecks(ClientSession& client, Command& command)
 	client.sendBuffer() += ERR_UNKNOWNCOMMAND(server.host, command.commandName, client.user().nickname);
 	return 1;
 }
+
+// handleMode 
+
+
+
+
+
+int	Handle::handleWhois(ClientSession& client, Command& command)
+{
+	std::string masks = command.paramList[0];
+	std::vector<std::string> maskList = server.splitByComma(masks);
+	if (masks.empty())
+		return (client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, command.commandName), -1);
+	for (size_t i = 0; i < maskList.size(); i++)
+	{
+		const std::string& mask = maskList[i];
+
+		for (size_t j = 0; j < server.clients.size(); j++)
+		{
+			const std::string& nick = server.clients[j]->user().nickname;
+
+			if (matchSimple(mask, nick))
+			{
+				const ClientSession* user = server.findClientByNick(nick); 
+				if (!user)
+					return (client.sendBuffer() =+ ERR_NOSUCHNICK(server.host, client.user().nickname, nick), -1);
+				client.sendBuffer() += RPL_WHOISUSER(server.host, user->user().nickname, user->user().username, user->user().hostname,  user->user().realname);
+				client.sendBuffer() += RPL_ENDOFWHOIS(server.host, client.user().nickname);
+				return 0;
+			}
+			return (client.sendBuffer() =+ ERR_NOSUCHNICK(server.host, client.user().nickname, nick), -1);
+		}
+	}
+	return 0;
+}

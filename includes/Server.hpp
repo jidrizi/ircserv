@@ -26,10 +26,33 @@
 # define GRE "\e[1;32m"
 # define YEL "\e[1;33m"
 
+class ClientSession;
+struct Command;
+class Handle;
+class Channel;
+
 class Server
 {
+	private:
+		std::string					password;
+		std::string					host;
+		std::vector<ClientSession*>	clients;
+		std::map<std::string, Channel*> channels;
 
-}
+		bool	isNicknameInUse(const std::string& nickname, int excludingFd) const;
+		bool	isValidNickname(const std::string& nickname) const;
+		ClientSession*	findClientByNick(const std::string& nickname);
+		std::vector<std::string>	splitByComma(const std::string& text) const;
+		void	broadcastToChannel(const Channel& channel, const std::string& message, int exceptFd);
+		std::string	buildChannelMode(const Channel& channel) const;
+
+		friend class Handle; // class is allowed to acess private and protected members of the server
+    
+	public:
+
+};
 
 
 int	printError(const std::string& errorMessage);
+
+#endif
