@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/14 21:07:54 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/15 11:52:34 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/15 14:38:28 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,7 @@ class Channel
         std::string     name;
         std::string     topic;
         std::string     key;
+        bool            keyEnabled;
     public:
         Channel(const std::string& channelName);
         ~Channel();
@@ -30,6 +31,8 @@ class Channel
         const std::string getTopic() const { return topic; }
         const std::string getKey() const { return key; }
         void setTopic(const std::string& value);
+        void setKey(const std::string& password);
+        void clearKey();
 };
 
 #endif

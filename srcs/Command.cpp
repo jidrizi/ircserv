@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/13 12:02:43 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/14 19:06:29 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/15 14:27:37 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -103,7 +103,7 @@ Command	parseCommand(const std::string& line)
 	command.type = getCommandType(command.commandName);
 	command.paramList = splitParams(command.paramsText);
 
-	
+	//DEBUG SHOWS COMMAND AND PARAMS 
 	std::cout << "command: " << command.commandName << std::endl;
 	for (int i = 0; i < command.paramList.size(); i++)
 		std::cout << "Params: " << command.paramList[i] << std::endl;
