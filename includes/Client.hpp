@@ -2,6 +2,7 @@
 # define CLIENT_HPP
 
 # include <string>
+# include <vector>
 
 struct UserProfile
 {
@@ -17,9 +18,14 @@ struct UserProfile
 };
 
 
+class Client
+{
+	private:
+		std::vector<ClientSession*> clients;
 
-
-
-
+	public:
+		bool	isValidNickname(const std::string& nickname) const;
+		bool	isNicknameInUse(const std::string& nickname, int excludingFd) const;
+};
 
 #endif
