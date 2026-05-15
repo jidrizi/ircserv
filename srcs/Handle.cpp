@@ -25,6 +25,15 @@ bool Handle::matchSimple(const std::string& mask, const std::string& nick)
     return false;
 }
 
+int	Handle::handleCap(ClientSession& client, Command& command)
+{
+	if (command.paramList.empty() || command.paramList[0] != "LS")
+		return 0;
+	if (client.user().registrationState == 0)
+		client.user().registrationState = 1;
+	client.sendBuffer() += RPL_CAP(client.user().hostname);
+	return 0;
+}
 
 int	Handle::handleNick(ClientSession& client, Command& command)
 {
@@ -100,4 +109,42 @@ int	Handle::handleUser(ClientSession& client, Command& command)
 	if (client.user().registrationState == 2)
 		client.user().registrationState = 3;
 	return 0;
+}
+
+int	Handle::handlePass(ClientSession& client, Command& command)
+{
+	if (client.user().registrationState == 0)
+	{
+		client.sendBuffer() += ERR_NOTREGISTERED(server.host);
+		return -1;
+	}
+	if (client.user().registrationState >= 2)
+	{
+		client.sendBuffer() += ERR_ALREADYREGISTERED(server.host);
+		return -1;
+	}
+	if (command.paramsText.empty())
+	{
+		client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, "PASS");
+		return -1;
+	}
+	if (command.paramsText != server.password)
+	{
+		client.sendBuffer() += ERR_PASSWDMISMATCH(server.host);
+		return -1;
+	}
+	client.user().registrationState = 2;
+	client.sendBuffer() += RPL_PASS(client.user().hostname);
+	return 0;
+}
+
+int	Handle::handlePreCommandChecks(ClientSession& client, Command& command)
+{
+	if (client.user().registrationState < 4)
+	{
+		client.sendBuffer() += ERR_NOTREGISTERED(server.host);
+		return 0;
+	}
+	client.sendBuffer() += ERR_UNKNOWNCOMMAND(server.host, command.commandName, client.user().nickname);
+	return 1;
 }

@@ -2,7 +2,6 @@
 # define CLIENT_HPP
 
 # include <string>
-# include <vector>
 
 struct UserProfile
 {
@@ -17,15 +16,29 @@ struct UserProfile
 	std::string source() const;
 };
 
-
-class Client
+class ClientSession
 {
 	private:
-		std::vector<ClientSession*> clients;
+		int			fdSocket;
+		std::string	ipAddr;
+		UserProfile	userData;
+		std::string	recvBufferData;
+		std::string	sendBufferData;
 
 	public:
-		bool	isValidNickname(const std::string& nickname) const;
-		bool	isNicknameInUse(const std::string& nickname, int excludingFd) const;
+		ClientSession(int fd, const std::string& ipAddress);
+		~ClientSession();
+
+		int					fd() const;
+		const std::string&		ipAddress() const;
+		UserProfile&			user();
+		const UserProfile&		user() const;
+		std::string&			recvBuffer();
+		std::string&			sendBuffer();
+		const std::string&		sendBuffer() const;
+		bool					hasPendingOutput() const;
+		void					consumeSentBytes(std::size_t sentBytes);
+		bool					popNextLine(std::string& line);
 };
 
 #endif
