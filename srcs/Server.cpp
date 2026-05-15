@@ -80,10 +80,36 @@ void	Server::initSocket()
 	pollFds.push_back(pfd);
 }
 
+void	Server::syncWriteInterest()
+{
+	for (std::vector<struct pollfd>::iterator it = pollFds.begin(); it != pollFds.end(); ++it)
+	{
+		if (it->fd == serverSocketFd)
+			continue;
+		ClientSession* client = findClientByFd(it->fd);
+		if (client && client->hasPendingOutput())
+			it->events = POLLIN | POLLOUT;
+		else
+			it->events = POLLIN;
+	}
+}
+
 void	Server::run()
 {
 	initSocket();
 	std::cout << GRE << "Server <" << serverSocketFd << "> connected" << WHI << std::endl;
 	std::cout << "Listening on port " << port << std::endl;
 
+	while (!stopSignal)
+	{
+		syncWriteInterest();
+		if (pollFds.empty())
+			break;
+		if (poll(&pollFds[0], pollFds.size(), -1) == -1)
+		{
+			if (errno == EINTR)
+				continue;
+			throw std::runtime_error("poll() failed");
+		}
+	}
 }
