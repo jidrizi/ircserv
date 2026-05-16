@@ -42,7 +42,7 @@ class Server
 		std::vector<ClientSession*>	clients;
 		std::vector<struct pollfd>	pollFds;
 		std::map<std::string, Channel*>	channels;
-		Handle						handler;
+		Handles						handler;
 
 		void			receiveFromClient(int clientFd);
 		void			processClientLine(ClientSession& client, const std::string& line);
@@ -58,7 +58,6 @@ class Server
 		std::vector<std::string>	splitByComma(const std::string& text) const;
 		void			broadcastToChannel(const Channel& channel, const std::string& message, int exceptFd);
 		std::string		buildChannelMode(const Channel& channel) const;
-        ClientSession*	findClientByFd(int clientFd);
 
 		friend class Handle; // Handle is allowed to access private members of the server
 

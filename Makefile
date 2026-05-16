@@ -12,7 +12,7 @@ SRCS = \
 	$(SRCDIR)main.cpp \
 	$(SRCDIR)Client.cpp \
 	$(SRCDIR)Command.cpp \
-	$(SRCDIR)Handle.cpp \
+	$(SRCDIR)Handles.cpp \
 
 BIN_DIR = bin
 
