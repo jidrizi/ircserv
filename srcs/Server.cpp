@@ -134,3 +134,97 @@ void	Server::processClientLine(ClientSession& client, const std::string& line)
 	}
 	handler.handlePreCommandChecks(client, command);
 }
+
+void	Server::tryCompleteRegistration(ClientSession& client)
+{
+	if (client.user().welcomeSent)
+		return;
+	// registrationState reaches 3 only after PASS (→1), CAP/skip (→1), PASS (→2), then NICK or USER (→3)
+	if (client.user().registrationState < 3)
+		return;
+	// Guard against NICK/USER arriving out of order leaving one field still at default "*"
+	if (client.user().nickname == "*" || client.user().username == "*")
+		return;
+	client.user().registrationState = 4;
+	client.user().welcomeSent = true;
+	client.sendBuffer() += RPL_WELCOME(host, client.user().username, client.user().hostname,
+		client.user().nickname);
+}
+
+void	Server::sendToClient(int fd, const std::string& message)
+{
+	ClientSession* client = findClientByFd(fd);
+	if (!client)
+		return;
+	client->sendBuffer() += message;
+}
+
+void	Server::sendPendingToClient(int clientFd)
+{
+	ClientSession* client = findClientByFd(clientFd);
+	if (!client || !client->hasPendingOutput())
+		return;
+
+	const std::string& pending = client->sendBuffer();
+	std::cout << GRE << "SEND <" << clientFd << ">: " << WHI << pending;
+	const ssize_t sent = send(clientFd, pending.c_str(), pending.size(), 0);
+	if (sent < 0)
+	{
+		// EAGAIN/EWOULDBLOCK means socket buffer full, try again next poll cycle
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+			return;
+		disconnectClient(clientFd);
+		return;
+	}
+	if (sent == 0)
+	{
+		disconnectClient(clientFd);
+		return;
+	}
+	client->consumeSentBytes(static_cast<std::size_t>(sent));
+}
+
+void	Server::disconnectClient(int clientFd)
+{
+	// Must remove from channels before erasing the ClientSession pointer
+	removeClientFromAllChannels(clientFd);
+	// Remove from pollFds so poll() stops watching this fd
+	for (std::vector<struct pollfd>::iterator it = pollFds.begin(); it != pollFds.end(); ++it)
+	{
+		if (it->fd == clientFd)
+		{
+			pollFds.erase(it);
+			break;
+		}
+	}
+	// delete closes the fd (ClientSession destructor calls close()) and frees memory
+	for (std::vector<ClientSession*>::iterator it = clients.begin(); it != clients.end(); ++it)
+	{
+		if ((*it)->fd() == clientFd)
+		{
+			std::cout << RED << "Client <" << clientFd << "> disconnected" << WHI << std::endl;
+			delete *it;
+			clients.erase(it);
+			break;
+		}
+	}
+}
+
+void	Server::removeClientFromAllChannels(int clientFd)
+{
+	for (std::map<std::string, Channel*>::iterator it = channels.begin(); it != channels.end(); )
+	{
+		Channel& channel = *it->second;
+		channel.removeMember(clientFd);
+		// If the operator just left, promote another member so the channel isn't op-less
+		channel.ensureOperator();
+		if (channel.empty())
+		{
+			// Erase with it++ to advance before invalidation, then delete the Channel object
+			delete it->second;
+			channels.erase(it++);
+		}
+		else
+			++it;
+	}
+}
