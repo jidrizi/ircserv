@@ -1,24 +1,15 @@
 #include "Server.hpp"
+#include "Replies.hpp"
 
 #include <algorithm>
 #include <cctype>
 #include <sstream>
-
 
 bool Server::stopSignal = false;
 
 Server::Server()
 	: port(0), serverSocketFd(-1)
 {
-}
-
-void	Server::closeAllFds()
-{
-	if (serverSocketFd != -1)
-	{
-		close(serverSocketFd);
-		serverSocketFd = -1;
-	}
 }
 
 Server::~Server()
@@ -127,5 +118,83 @@ void	Server::run()
 				continue;
 			throw std::runtime_error("poll() failed");
 		}
+
+		for (std::size_t i = 0; i < pollFds.size(); ++i)
+		{
+			const struct pollfd current = pollFds[i];
+			if (current.revents & (POLLERR | POLLHUP | POLLNVAL))
+			{
+				if (current.fd != serverSocketFd)
+					disconnectClient(current.fd);
+				continue;
+			}
+			if (current.revents & POLLIN)
+			{
+				if (current.fd == serverSocketFd)
+					acceptNewClient();
+				else
+					receiveFromClient(current.fd);
+			}
+			if (current.revents & POLLOUT)
+				sendPendingToClient(current.fd);
+		}
+	}
+}
+
+void	Server::acceptNewClient()
+{
+	struct sockaddr_in clientAddr;
+	socklen_t len = sizeof(clientAddr);
+	const int clientFd = accept(serverSocketFd, reinterpret_cast<struct sockaddr*>(&clientAddr), &len);
+	if (clientFd == -1)
+	{
+		if (errno != EAGAIN && errno != EWOULDBLOCK)
+			std::cerr << "accept() failed: " << strerror(errno) << std::endl;
+		return;
+	}
+
+	if (fcntl(clientFd, F_SETFL, O_NONBLOCK) == -1)
+	{
+		std::cerr << "fcntl() failed for client " << clientFd << std::endl;
+		close(clientFd);
+		return;
+	}
+
+	char ipBuffer[NI_MAXHOST];
+	if (getnameinfo(reinterpret_cast<struct sockaddr*>(&clientAddr), len, ipBuffer, sizeof(ipBuffer), NULL, 0, NI_NUMERICHOST) != 0)
+		std::strcpy(ipBuffer, "unknown");
+
+	ClientSession* client = new ClientSession(clientFd, ipBuffer);
+	clients.push_back(client);
+
+	struct pollfd pfd;
+	pfd.fd = clientFd;
+	pfd.events = POLLIN;
+	pfd.revents = 0;
+	pollFds.push_back(pfd);
+	std::cout << GRE << "Client <" << clientFd << "> connected from " << ipBuffer << WHI << std::endl;
+}
+
+void	Server::receiveFromClient(int clientFd)
+{
+	ClientSession* client = findClientByFd(clientFd);
+	if (!client)
+		return;
+
+	char buffer[1024];
+	std::memset(buffer, 0, sizeof(buffer));
+	const ssize_t bytes = recv(clientFd, buffer, sizeof(buffer) - 1, 0);
+	if (bytes <= 0)
+	{
+		disconnectClient(clientFd);
+		return;
+	}
+
+	client->recvBuffer().append(buffer, bytes);
+	std::string line;
+	while (client->popNextLine(line))
+	{
+		std::cout << YEL << "RECV <" << clientFd << ">: " << WHI << line << std::endl;
+		processClientLine(*client, line);
 	}
 }
