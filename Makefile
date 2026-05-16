@@ -1,6 +1,6 @@
 CXX = c++
 
-CXXFLAGS =  -std=c++98 -Iincludes
+CXXFLAGS =  -std=c++98 -Iincludes 
 
 NAME = ircserv
 
@@ -10,9 +10,11 @@ SRCDIR = srcs/
 
 SRCS = \
 	$(SRCDIR)main.cpp \
-	$(SRCDIR)Client.cpp \
-	$(SRCDIR)Command.cpp \
+	$(SRCDIR)Server.cpp \
 	$(SRCDIR)Handles.cpp \
+	$(SRCDIR)Command.cpp \
+	$(SRCDIR)Client.cpp \
+	$(SRCDIR)Channel.cpp \
 
 BIN_DIR = bin
 

@@ -5,12 +5,16 @@
 # include <csignal>
 # include <cstdlib>
 # include <cstring>
+# include <cctype>
 # include <iostream>
 # include <map>
 # include <set>
 # include <stdexcept>
 # include <string>
 # include <vector>
+#include <algorithm>
+#include <sstream>
+
 
 # include <arpa/inet.h>
 # include <fcntl.h>
@@ -62,6 +66,48 @@ class Server
 		friend class Handle; // Handle is allowed to access private members of the server
 
 	public:
+class Channel;
+
+class Server
+{
+	private:
+		int							port;
+		std::string					password;
+		int							serverSocketFd;
+		std::string					host;
+		std::vector<ClientSession*>	clients;
+		std::vector<struct pollfd>	pollFds;
+		std::map<std::string, Channel*> channels;
+		static bool					stopSignal;
+
+		Server(const Server& rhs);
+		Server& operator=(const Server& rhs);
+
+		void	initSocket();
+
+		public:
+		Server();
+		~Server();
+
+		int							parseArgs(char** argv);
+		void						run();
+		static void 				signalHandler(int signalNumber);
+		void						closeAllFds();
+		void						syncWriteInterest();
+		void						disconnectClient(int clientFd);
+		void						removeClientFromAllChannels(int clientFd);
+		void						acceptNewClient();
+		void						receiveFromClient(int clientFd);
+		void						processClientLine(ClientSession& client, const std::string& line);
+	void							sendPendingToClient(int clientFd);
+		std::vector<std::string> 	splitByComma(const std::string& text) const;
+
+
+
+
+
+
+		ClientSession*	findClientByFd(int clientFd);
 
 };
 
