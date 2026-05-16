@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/14 21:07:54 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/16 16:56:22 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/16 21:41:21 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,6 @@
 class Channel
 {
     private:
-        // std::map<std::string, Channel*> channels;
         std::string             name;
         std::string             topic;
         std::string             key;

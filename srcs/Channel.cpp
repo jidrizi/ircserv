@@ -6,17 +6,17 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/14 14:07:15 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/16 16:46:53 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/16 21:40:49 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ft_irc.hpp"
 
 Channel::Channel(const std::string& channelName)
-    :   name(channelName),
-        topic(""),
-        key(""),
-        keyEnabled(false)
+:   name(channelName),
+topic(""),
+key(""),
+keyEnabled(false)
 {
 }
 
@@ -26,23 +26,23 @@ Channel::~Channel()
 
 void Channel::setTopic(const std::string& value)
 {
-    topic = value;
+	topic = value;
 }
 
 void Channel::setKey(const std::string& password)
 {
-    if (password.empty())
+	if (password.empty())
     clearKey();
     else
     {
-        key = password;
+		key = password;
         keyEnabled = true;
     }
 }
 
 void Channel::clearKey()
 {
-    key.clear();
+	key.clear();
     keyEnabled = false;
 }
 
@@ -129,7 +129,7 @@ void	Channel::removeOperator(int fd)
 void	Channel::ensureOperator()
 {
 	if (!operators.empty() || members.empty())
-		return;
+	return;
 	operators.insert(*members.begin());
 }
 
@@ -166,8 +166,6 @@ void	Channel::clearUserLimit()
 	userLimit = 0;
 	userLimitEnabled = false;
 }
-
-
 
 
 

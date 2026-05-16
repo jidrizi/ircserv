@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/15 16:26:57 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/16 19:30:16 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/16 21:21:10 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,12 +20,12 @@ void	Handles::processClientLine(ClientSession& client, const std::string& line)
         return;
     if (command.type == CMD_JOIN)
         handleJoin(client, command);
-    // if (command.type == CMD_PART)
-    //     handlePart();
-    // if (command.type == CMD_KICK)
-    //     handleKick();
-    // if (command.type == CMD_TOPIC)
-    //     handleTopic();
+    if (command.type == CMD_PART)
+        handlePart(client, command);
+    if (command.type == CMD_KICK)
+        handleKick(client, command);
+    if (command.type == CMD_TOPIC)
+        handleTopic(client, command);
 
 }
 
