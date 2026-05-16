@@ -198,3 +198,40 @@ void	Server::receiveFromClient(int clientFd)
 		processClientLine(*client, line);
 	}
 }
+
+
+std::string	trimSpaces(const std::string& value)
+{
+	if (value.empty())
+		return value;
+	std::size_t start = 0;
+	while (start < value.size() && (value[start] == ' ' || value[start] == '\t'))
+		++start;
+	if (start == value.size())
+		return "";
+	std::size_t end = value.size() - 1;
+	while (end > start && (value[end] == ' ' || value[end] == '\t'
+			|| value[end] == '\n' || value[end] == '\r'))
+		--end;
+	return value.substr(start, end - start + 1);
+}
+
+std::vector<std::string> Server::splitByComma(const std::string& text) const
+{
+	std::vector<std::string> values;
+	std::string token;
+	for (std::size_t i = 0; i < text.size(); ++i)
+	{
+		if (text[i] == ',')
+		{
+			if (!token.empty())
+				values.push_back(token);
+			token.clear();
+			continue;
+		}
+		token += text[i];
+	}
+	if (!token.empty())
+		values.push_back(token);
+	return values;
+}
