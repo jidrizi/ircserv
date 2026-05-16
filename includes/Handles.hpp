@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/15 16:43:00 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/16 19:26:25 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/16 22:04:16 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,6 +33,7 @@ class Handles{
         std::vector<std::string>    splitByComma(const std::string& text) const;
         bool	                    isValidChannelName(const std::string& channelName) const;
         void	                    broadcastToChannel(const Channel& channel, const std::string& message, int exceptFd);
+        ClientSession*	            findClientByNick(const std::string& nickname);
 
 
 };

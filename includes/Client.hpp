@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/15 16:37:22 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/15 22:50:29 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/16 22:08:51 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,19 @@
 
 #include "ft_irc.hpp"
 
+struct UserProfile
+{
+	std::string nickname;
+	std::string username;
+	std::string realname;
+	std::string hostname;
+	int			registrationState;
+	bool		welcomeSent;
+
+	UserProfile();
+	std::string source() const;
+};
+
 class ClientSession
 {
 	private:
@@ -22,8 +35,17 @@ class ClientSession
 		std::string	ipAddr;
 		std::string	recvBufferData;
 		std::string	sendBufferData;
+		UserProfile	userData;
+
+		
     public:
-        int     fd()    const { return fdSocket; };
+        int     					fd()    const { return fdSocket; };
+		UserProfile&				user();
+		const UserProfile&			user() const;
 };
+
+
+
+
 
 #endif

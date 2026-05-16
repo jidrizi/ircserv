@@ -16,7 +16,14 @@ Channel::Channel(const std::string& channelName)
 :   name(channelName),
 topic(""),
 key(""),
-keyEnabled(false)
+members(),
+invitedUsers(),
+operators(),
+userLimit(0),
+keyEnabled(false),
+inviteOnly(false),
+topicRestricted(false),
+userLimitEnabled(false)
 {
 }
 
@@ -138,11 +145,6 @@ void	Channel::removeMember(int fd)
 	members.erase(fd);
 	operators.erase(fd);
 	invitedUsers.erase(fd);
-}
-
-const std::set<int>&	Channel::getMembers() const
-{
-	return members;
 }
 
 bool	Channel::hasUserLimit() const
