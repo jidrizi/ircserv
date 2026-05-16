@@ -32,20 +32,31 @@
 
 class Server
 {
-    private:
-        int             port;
-        std::string     password;
-        static bool     stopSignal;
-    
-    public:
-    int	        parseArgs(char** argv);
-    static void	signalHandler(int signalNumber);
-    void        run();
-    
+	private:
+		int							port;
+		std::string					password;
+		int							serverSocketFd;
+		std::string					host;
+		std::vector<ClientSession*>	clients;
+		std::vector<struct pollfd>	pollFds;
+		std::map<std::string, Channel*> channels;
+		static bool					stopSignal;
+
+		Server(const Server& rhs);
+		Server& operator=(const Server& rhs);
+
+		void	initSocket();
+
+		public:
+		Server();
+		~Server();
+
+		int		parseArgs(char** argv);
+		void	run();
+		static void signalHandler(int signalNumber);
 };
 
-int	        printError(const std::string& errorMessage);
 
-
+int	printError(const std::string& errorMessage);
 
 #endif

@@ -1,33 +1,24 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   main.cpp                                           :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/05/16 21:42:55 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/16 21:50:46 by fefo             ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "ft_irc.hpp"
-
-int executeCommand(Command& cmd)
-{
-
-	return 0;
-}
 
 int main(int argc, char** argv)
 {
-	Command commandline;
-	while (1)
+	Server server;
+
+	if (argc != 3)
+		return printError("usage: ./ircserv <port> <password>");
+	if (server.parseArgs(argv) != 0)
+		return 1;
+
+	try
 	{
-		std::cout << "waiting for a command: ";
-		std::getline(std::cin, commandline.commandName);
-		
-		commandline = parseCommand(commandline.commandName);
-		executeCommand(commandline);
+		signal(SIGINT, Server::signalHandler);
+		signal(SIGQUIT, Server::signalHandler);
+		server.run();
+	}
+	catch (const std::exception& e)
+	{
+		std::cerr << e.what() << std::endl;
+		return 1;
 	}
 	return 0;
 }
