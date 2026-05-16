@@ -1,8 +1,9 @@
+
 #ifndef SERVER_HPP
 # define SERVER_HPP
 
-# include <cerrno>
 # include <csignal>
+# include <cerrno>
 # include <cstdlib>
 # include <cstring>
 # include <cctype>
@@ -47,70 +48,50 @@ class Server
 		std::vector<struct pollfd>	pollFds;
 		std::map<std::string, Channel*>	channels;
 		Handles						handler;
+        static bool					stopSignal;
 
+        Server(const Server& rhs);
+		Server& operator=(const Server& rhs);
+
+		void	    initSocket();
+
+		bool			isNicknameInUse(const std::string& nickname, int excludingFd) const;
+		bool			isValidNickname(const std::string& nickname) const;
+		ClientSession*	findClientByFd(int clientFd);
+		ClientSession*	findClientByNick(const std::string& nickname);
 		void			receiveFromClient(int clientFd);
 		void			processClientLine(ClientSession& client, const std::string& line);
 		void			tryCompleteRegistration(ClientSession& client);
-		ClientSession*	findClientByFd(int clientFd);
-		ClientSession*	findClientByNick(const std::string& nickname);
 		void			sendToClient(int fd, const std::string& message);
 		void			sendPendingToClient(int clientFd);
 		void			disconnectClient(int clientFd);
 		void			removeClientFromAllChannels(int clientFd);
-		bool			isNicknameInUse(const std::string& nickname, int excludingFd) const;
-		bool			isValidNickname(const std::string& nickname) const;
-		std::vector<std::string>	splitByComma(const std::string& text) const;
-		void			broadcastToChannel(const Channel& channel, const std::string& message, int exceptFd);
-		std::string		buildChannelMode(const Channel& channel) const;
+		
+        std::vector<std::string>	splitByComma(const std::string& text) const;
+        void						closeAllFds();
+		void						syncWriteInterest();
+        void						acceptNewClient();
+        void			            broadcastToChannel(const Channel& channel, const std::string& message, int exceptFd);
+		std::string		            buildChannelMode(const Channel& channel) const;
+        std::string	                buildNamesList(const Channel& channel) const;
+        
+        
+		friend class Handles; // Handle is allowed to access private members of the server
 
-		friend class Handle; // Handle is allowed to access private members of the server
-
+        // --- PUBLIC ---
 	public:
-class Channel;
-
-class Server
-{
-	private:
-		int							port;
-		std::string					password;
-		int							serverSocketFd;
-		std::string					host;
-		std::vector<ClientSession*>	clients;
-		std::vector<struct pollfd>	pollFds;
-		std::map<std::string, Channel*> channels;
-		static bool					stopSignal;
-
-		Server(const Server& rhs);
-		Server& operator=(const Server& rhs);
-
-		void	initSocket();
-
-		public:
-		Server();
+        Server();
 		~Server();
 
 		int							parseArgs(char** argv);
 		void						run();
 		static void 				signalHandler(int signalNumber);
-		void						closeAllFds();
-		void						syncWriteInterest();
-		void						disconnectClient(int clientFd);
-		void						removeClientFromAllChannels(int clientFd);
-		void						acceptNewClient();
-		void						receiveFromClient(int clientFd);
-		void						processClientLine(ClientSession& client, const std::string& line);
-	void							sendPendingToClient(int clientFd);
-		std::vector<std::string> 	splitByComma(const std::string& text) const;
+		
 
 
-
-
-
-
-		ClientSession*	findClientByFd(int clientFd);
+// class Channel;
 
 };
-
 
 int	printError(const std::string& errorMessage);
 
