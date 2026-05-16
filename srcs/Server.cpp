@@ -12,6 +12,15 @@ Server::Server()
 {
 }
 
+void	Server::closeAllFds()
+{
+	if (serverSocketFd != -1)
+	{
+		close(serverSocketFd);
+		serverSocketFd = -1;
+	}
+}
+
 Server::~Server()
 {
 	closeAllFds();
