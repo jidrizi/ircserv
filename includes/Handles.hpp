@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/15 16:43:00 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/16 17:04:00 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/16 19:26:25 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,7 +24,10 @@ class Handles{
         int                         handleTopic(ClientSession& client, Command& command);
         int                     	handlePart(ClientSession& client, Command& command);
         int                         handlePrivmsg(ClientSession& client, Command& command);
-        
+        int	                        handleInvite(ClientSession& client, Command& command);
+        int	                        handleKick(ClientSession& client, Command& command);
+        int                 	    handlePrivmsg(ClientSession& client, Command& command);
+
         
         void                    	processClientLine(ClientSession& client, const std::string& line);
         std::vector<std::string>    splitByComma(const std::string& text) const;
