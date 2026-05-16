@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/15 16:26:57 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/16 16:52:10 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/16 17:07:12 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -201,6 +201,41 @@ int	Handles::handlePart(ClientSession& client, Command& command)
 		{
 			delete chIt->second;
 			channels.erase(chIt);
+		}
+	}
+	return 0;
+}
+
+
+int	Handles::handlePrivmsg(ClientSession& client, Command& command)
+{
+	std::vector<std::string> targets = splitByComma(command.paramList[0]);
+	const std::string& text = command.paramList[1];
+	for (std::vector<std::string>::iterator it = targets.begin(); it != targets.end(); ++it)
+	{
+		if ((*it)[0] == '#')
+		{
+			std::map<std::string, Channel*>::iterator chIt = channels.find(*it);
+			if (chIt == channels.end())
+			{
+				//error msg
+				continue;
+			}
+			Channel& channel = *chIt->second;
+			if (!channel.hasMember(client.fd()))
+			{
+				//error msg
+				continue;
+			}
+			std::cout << "PRIVMSG sent" << std::endl;
+		}
+		else
+		{
+			// if ()
+			// {
+			// 	//error msg
+			// 	continue;
+			// }
 		}
 	}
 	return 0;
