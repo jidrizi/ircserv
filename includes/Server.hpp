@@ -30,6 +30,9 @@
 # define GRE "\e[1;32m"
 # define YEL "\e[1;33m"
 
+class ClientSession;
+class Channel;
+
 class Server
 {
 	private:
@@ -61,6 +64,7 @@ class Server
 		void						acceptNewClient();
 		void						receiveFromClient(int clientFd);
 		void						processClientLine(ClientSession& client, const std::string& line);
+	void							sendPendingToClient(int clientFd);
 		std::vector<std::string> 	splitByComma(const std::string& text) const;
 
 

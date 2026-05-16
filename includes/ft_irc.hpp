@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/14 21:07:59 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/16 22:20:40 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/16 23:01:19 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,5 +18,6 @@
 # include "Channel.hpp"
 # include "Handles.hpp"
 # include "Client.hpp"
+# include "Replies.hpp"
 
 #endif

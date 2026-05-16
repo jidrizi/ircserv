@@ -6,27 +6,16 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/15 16:26:57 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/16 22:06:19 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/16 23:20:23 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ft_irc.hpp"
 
 
-void	Handles::processClientLine(ClientSession& client, const std::string& line)
+void Server::processClientLine(ClientSession& client, const std::string& line)
 {
-    Command command = parseCommand(line);
-    if (command.commandName.empty())
-        return;
-    if (command.type == CMD_JOIN)
-        handleJoin(client, command);
-    if (command.type == CMD_PART)
-        handlePart(client, command);
-    if (command.type == CMD_KICK)
-        handleKick(client, command);
-    if (command.type == CMD_TOPIC)
-        handleTopic(client, command);
-
+    (void)client; (void)line;
 }
 
 std::vector<std::string> Handles::splitByComma(const std::string& text) const
@@ -164,12 +153,12 @@ int Handles::handleTopic(ClientSession& client, Command& command)
 			return 0; //rpl topic
 		else
 			return 0; //rpl notopic
+	}
 	if (channel.isTopicRestricted() && !channel.hasOperator(client.fd()))
 		return (-1); //err CHANOPRIVSNEEDED
 	channel.setTopic(name);
 	broadcastToChannel(channel, "RPLMEGGASE", -1); //switch RPLMESSAGE with rpl_topic
 	return 0;
-	}
 }
 
 int	Handles::handlePart(ClientSession& client, Command& command)
@@ -233,14 +222,19 @@ int	Handles::handlePrivmsg(ClientSession& client, Command& command)
 		{
 			// if ()
 			// {
-			// 	//error msg
-			// 	continue;
+				//error msg
+				continue;
 			// }
 		}
 	}
 	return 0;
 }
 
+ClientSession* Handles::findClientByNick(const std::string& nickname)
+{
+  (void)nickname;
+  return NULL;
+}
 
 int	Handles::handleInvite(ClientSession& client, Command& command)
 {
@@ -329,42 +323,6 @@ int	Handles::handleKick(ClientSession& client, Command& command)
 	{
 		delete chIt->second;
 		channels.erase(chIt);
-	}
-	return 0;
-}
-
-int	Handles::handlePrivmsg(ClientSession& client, Command& command)
-{
-	std::vector<std::string> targets = splitByComma(command.paramList[0]);
-	const std::string& text = command.paramList[1];
-	for (std::vector<std::string>::iterator it = targets.begin(); it != targets.end(); ++it)
-	{
-		if ((*it)[0] == '#')
-		{
-			std::map<std::string, Channel*>::iterator chIt = channels.find(*it);
-			if (chIt == channels.end())
-			{
-				//send error msg
-				continue;
-			}
-			Channel& channel = *chIt->second;
-			if (!channel.hasMember(client.fd()))
-			{
-				//send error msg
-				continue;
-			}
-			broadcastToChannel(channel, "RPLY_PRIVMSG", client.fd());
-		}
-		else
-		{
-			ClientSession* target = findClientByNick(*it);
-			if (!target)
-			{
-				//send error msg
-				continue;
-			}
-			std::cout << "RPLy_PRIVMSG"<< std::endl;
-		}
 	}
 	return 0;
 }

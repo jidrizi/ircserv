@@ -1,6 +1,23 @@
 
 #include "ft_irc.hpp"
 
+UserProfile::UserProfile()
+  : nickname("*"), username("*"), realname("*"), hostname("*"),
+    registrationState(0), welcomeSent(false)
+{}
+
+std::string UserProfile::source() const
+{
+  return nickname + "!" + username + "@" + hostname;
+}
+
+ClientSession::ClientSession(int fd, const std::string& ipAddress)
+	: fdSocket(fd), ipAddr(ipAddress)
+{
+	userData.hostname = ipAddress;
+}
+
+
 UserProfile&	ClientSession::user()
 {
 	return userData;
@@ -32,4 +49,14 @@ bool	ClientSession::popNextLine(std::string& line)
 		line.erase(line.size() - 1);
 	recvBufferData.erase(0, lineEnd + 1);
 	return true;
+}
+
+std::string&	ClientSession::sendBuffer()
+{
+	return sendBufferData;
+}
+
+void	ClientSession::consumeSentBytes(std::size_t sentBytes)
+{
+	sendBufferData.erase(0, sentBytes);
 }

@@ -1,5 +1,3 @@
-#include "Server.hpp"
-#include "Replies.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -162,6 +160,31 @@ void	Server::disconnectClient(int clientFd)
 	}
 }
 
+void	Server::sendPendingToClient(int clientFd)
+{
+	ClientSession* client = findClientByFd(clientFd);
+	if (!client || !client->hasPendingOutput())
+		return;
+
+	const std::string& pending = client->sendBuffer();
+	std::cout << GRE << "SEND <" << clientFd << ">: " << WHI << pending;
+	const ssize_t sent = send(clientFd, pending.c_str(), pending.size(), 0);
+	if (sent < 0)
+	{
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+			return;
+		disconnectClient(clientFd);
+		return;
+	}
+	if (sent == 0)
+	{
+		disconnectClient(clientFd);
+		return;
+	}
+	client->consumeSentBytes(static_cast<std::size_t>(sent));
+}
+
+
 void	Server::run()
 {
 	initSocket();
@@ -259,23 +282,6 @@ void	Server::receiveFromClient(int clientFd)
 		std::cout << YEL << "RECV <" << clientFd << ">: " << WHI << line << std::endl;
 		processClientLine(*client, line);
 	}
-}
-
-
-std::string	trimSpaces(const std::string& value)
-{
-	if (value.empty())
-		return value;
-	std::size_t start = 0;
-	while (start < value.size() && (value[start] == ' ' || value[start] == '\t'))
-		++start;
-	if (start == value.size())
-		return "";
-	std::size_t end = value.size() - 1;
-	while (end > start && (value[end] == ' ' || value[end] == '\t'
-			|| value[end] == '\n' || value[end] == '\r'))
-		--end;
-	return value.substr(start, end - start + 1);
 }
 
 std::vector<std::string> Server::splitByComma(const std::string& text) const

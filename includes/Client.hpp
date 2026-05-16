@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/15 16:37:22 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/16 22:36:16 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/16 22:59:55 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,12 +39,16 @@ class ClientSession
 
 		
     public:
+		ClientSession(int fd, const std::string& ipAddress);
+
         int     					fd()    const { return fdSocket; };
 		UserProfile&				user();
 		const UserProfile&			user() const;
 		bool						hasPendingOutput() const;
 		std::string&				recvBuffer();
 		bool						popNextLine(std::string& line);
+		std::string&				sendBuffer();
+		void						consumeSentBytes(std::size_t sentBytes);
 
 
 };
