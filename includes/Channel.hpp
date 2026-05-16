@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/14 21:07:54 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/16 16:45:03 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/16 16:56:22 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,6 +55,7 @@ class Channel
 
         bool                    hasMember(int fd) const;
         const std::set<int>&	getMembers() const;
+        void	                removeMember(int fd);
         void	                addMember(int fd);
         
 
@@ -79,6 +80,7 @@ class Channel
         std::size_t	            getUserLimit() const;
 		void			    	setUserLimit(std::size_t value);
         void        	        clearUserLimit();
+
         bool        	        empty() const;
 
         

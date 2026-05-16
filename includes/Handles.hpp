@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/15 16:43:00 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/15 23:39:55 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/16 16:48:37 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,7 @@ class Handles{
     public:
         int                         handleJoin(ClientSession& client, Command& command);
         int                         handleTopic(ClientSession& client, Command& command);
+        int                     	handlePart(ClientSession& client, Command& command);
         
         
         void                    	processClientLine(ClientSession& client, const std::string& line);

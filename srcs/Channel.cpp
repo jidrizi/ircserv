@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/14 14:07:15 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/16 16:45:09 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/16 16:46:53 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -131,6 +131,18 @@ void	Channel::ensureOperator()
 	if (!operators.empty() || members.empty())
 		return;
 	operators.insert(*members.begin());
+}
+
+void	Channel::removeMember(int fd)
+{
+	members.erase(fd);
+	operators.erase(fd);
+	invitedUsers.erase(fd);
+}
+
+const std::set<int>&	Channel::getMembers() const
+{
+	return members;
 }
 
 bool	Channel::hasUserLimit() const

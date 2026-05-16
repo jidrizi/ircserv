@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/15 16:26:57 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/15 23:43:42 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/16 16:52:10 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -170,4 +170,38 @@ int Handles::handleTopic(ClientSession& client, Command& command)
 	broadcastToChannel(channel, "RPLMEGGASE", -1); //switch RPLMESSAGE with rpl_topic
 	return 0;
 	}
+}
+
+int	Handles::handlePart(ClientSession& client, Command& command)
+{
+	std::vector<std::string> targets = splitByComma(command.paramList[0]);
+	std::string reason = "Leaving";
+	if (command.paramList.size() > 1)
+		reason = command.paramList[1];
+	for (std::vector<std::string>::iterator it = targets.begin(); it != targets.end(); ++it)
+	{
+		std::map<std::string, Channel*>::iterator chIt = channels.find(*it);
+		if (chIt == channels.end())
+		{
+			//send error
+			continue;
+		}
+		Channel& channel = *chIt->second;
+		if (!channel.hasMember(client.fd()))
+		{
+			//send err
+			continue;
+		}
+
+		const std::string partMsg = "rply PART";
+		broadcastToChannel(channel, partMsg, -1);
+		channel.removeMember(client.fd());
+		channel.ensureOperator();
+		if (channel.empty())
+		{
+			delete chIt->second;
+			channels.erase(chIt);
+		}
+	}
+	return 0;
 }
