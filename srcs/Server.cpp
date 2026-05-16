@@ -4,12 +4,22 @@
 #include <algorithm>
 #include <cctype>
 #include <sstream>
+#include "ft_irc.hpp"
 
 bool Server::stopSignal = false;
 
 Server::Server()
 	: port(0), serverSocketFd(-1)
 {
+}
+
+void	Server::closeAllFds()
+{
+	if (serverSocketFd != -1)
+	{
+		close(serverSocketFd);
+		serverSocketFd = -1;
+	}
 }
 
 Server::~Server()
@@ -87,6 +97,16 @@ void	Server::initSocket()
 	pollFds.push_back(pfd);
 }
 
+ClientSession*	Server::findClientByFd(int clientFd)
+{
+	for (std::vector<ClientSession*>::iterator it = clients.begin(); it != clients.end(); ++it)
+	{
+		if ((*it)->fd() == clientFd)
+			return *it;
+	}
+	return NULL;
+}
+
 void	Server::syncWriteInterest()
 {
 	for (std::vector<struct pollfd>::iterator it = pollFds.begin(); it != pollFds.end(); ++it)
@@ -98,6 +118,47 @@ void	Server::syncWriteInterest()
 			it->events = POLLIN | POLLOUT;
 		else
 			it->events = POLLIN;
+	}
+}
+
+void	Server::removeClientFromAllChannels(int clientFd)
+{
+	for (std::map<std::string, Channel*>::iterator it = channels.begin(); it != channels.end(); )
+	{
+		Channel& channel = *it->second;
+		channel.removeMember(clientFd);
+		channel.ensureOperator();
+		if (channel.empty())
+		{
+			delete it->second;
+			channels.erase(it++);
+		}
+		else
+			++it;
+	}
+}
+
+void	Server::disconnectClient(int clientFd)
+{
+	removeClientFromAllChannels(clientFd);
+	for (std::vector<struct pollfd>::iterator it = pollFds.begin(); it != pollFds.end(); ++it)
+	{
+		if (it->fd == clientFd)
+		{
+			pollFds.erase(it);
+			break;
+		}
+	}
+
+	for (std::vector<ClientSession*>::iterator it = clients.begin(); it != clients.end(); ++it)
+	{
+		if ((*it)->fd() == clientFd)
+		{
+			std::cout << RED << "Client <" << clientFd << "> disconnected" << WHI << std::endl;
+			delete *it;
+			clients.erase(it);
+			break;
+		}
 	}
 }
 
@@ -174,6 +235,7 @@ void	Server::acceptNewClient()
 	pollFds.push_back(pfd);
 	std::cout << GRE << "Client <" << clientFd << "> connected from " << ipBuffer << WHI << std::endl;
 }
+
 
 void	Server::receiveFromClient(int clientFd)
 {

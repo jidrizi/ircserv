@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/15 16:37:22 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/16 22:08:51 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/16 22:36:16 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,6 +42,11 @@ class ClientSession
         int     					fd()    const { return fdSocket; };
 		UserProfile&				user();
 		const UserProfile&			user() const;
+		bool						hasPendingOutput() const;
+		std::string&				recvBuffer();
+		bool						popNextLine(std::string& line);
+
+
 };
 
 

@@ -51,9 +51,25 @@ class Server
 		Server();
 		~Server();
 
-		int		parseArgs(char** argv);
-		void	run();
-		static void signalHandler(int signalNumber);
+		int							parseArgs(char** argv);
+		void						run();
+		static void 				signalHandler(int signalNumber);
+		void						closeAllFds();
+		void						syncWriteInterest();
+		void						disconnectClient(int clientFd);
+		void						removeClientFromAllChannels(int clientFd);
+		void						acceptNewClient();
+		void						receiveFromClient(int clientFd);
+		void						processClientLine(ClientSession& client, const std::string& line);
+		std::vector<std::string> 	splitByComma(const std::string& text) const;
+
+
+
+
+
+
+		ClientSession*	findClientByFd(int clientFd);
+
 };
 
 
