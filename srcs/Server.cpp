@@ -14,7 +14,14 @@ Server::Server()
 
 Server::~Server()
 {
-
+	closeAllFds();
+	for (std::vector<ClientSession*>::iterator it = clients.begin(); it != clients.end(); ++it)
+		delete *it;
+	for (std::map<std::string, Channel*>::iterator it = channels.begin(); it != channels.end(); ++it)
+		delete it->second;
+	clients.clear();
+	pollFds.clear();
+	channels.clear();
 }
 
 int	printError(const std::string& errorMessage)
