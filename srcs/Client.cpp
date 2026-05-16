@@ -1,14 +1,20 @@
+#include "Client.hpp"
 
-#include "ft_irc.hpp"
+#include <unistd.h>
 
 UserProfile::UserProfile()
-  : nickname("*"), username("*"), realname("*"), hostname("*"),
-    registrationState(0), welcomeSent(false)
-{}
-
-std::string UserProfile::source() const
+	: nickname("*"),
+	  username("*"),
+	  realname("*"),
+	  hostname("*"),
+	  registrationState(0),
+	  welcomeSent(false)
 {
-  return nickname + "!" + username + "@" + hostname;
+}
+
+std::string	UserProfile::source() const
+{
+	return nickname + "!" + username + "@" + hostname;
 }
 
 ClientSession::ClientSession(int fd, const std::string& ipAddress)
@@ -17,6 +23,21 @@ ClientSession::ClientSession(int fd, const std::string& ipAddress)
 	userData.hostname = ipAddress;
 }
 
+ClientSession::~ClientSession()
+{
+	if (fdSocket >= 0)
+		close(fdSocket);
+}
+
+int	ClientSession::fd() const
+{
+	return fdSocket;
+}
+
+const std::string&	ClientSession::ipAddress() const
+{
+	return ipAddr;
+}
 
 UserProfile&	ClientSession::user()
 {
@@ -28,14 +49,30 @@ const UserProfile&	ClientSession::user() const
 	return userData;
 }
 
+std::string&	ClientSession::recvBuffer()
+{
+	return recvBufferData;
+}
+
+std::string&	ClientSession::sendBuffer()
+{
+	return sendBufferData;
+}
+
+const std::string&	ClientSession::sendBuffer() const
+{
+	return sendBufferData;
+}
+
 bool	ClientSession::hasPendingOutput() const
 {
 	return !sendBufferData.empty();
 }
 
-std::string&	ClientSession::recvBuffer()
+void	ClientSession::consumeSentBytes(std::size_t sentBytes)
 {
-	return recvBufferData;
+	// Remove sentBytes from front of send buffer after successful write
+	sendBufferData.erase(0, sentBytes);
 }
 
 bool	ClientSession::popNextLine(std::string& line)

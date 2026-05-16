@@ -33,28 +33,24 @@ class ClientSession
 	private:
 		int			fdSocket;
 		std::string	ipAddr;
+		UserProfile	userData;
 		std::string	recvBufferData;
 		std::string	sendBufferData;
-		UserProfile	userData;
 
-		
-    public:
+	public:
 		ClientSession(int fd, const std::string& ipAddress);
+		~ClientSession();
 
-        int     					fd()    const { return fdSocket; };
-		UserProfile&				user();
-		const UserProfile&			user() const;
-		bool						hasPendingOutput() const;
-		std::string&				recvBuffer();
-		bool						popNextLine(std::string& line);
-		std::string&				sendBuffer();
-		void						consumeSentBytes(std::size_t sentBytes);
-
-
+		int					fd() const;
+		const std::string&		ipAddress() const;
+		UserProfile&			user();
+		const UserProfile&		user() const;
+		std::string&			recvBuffer();
+		std::string&			sendBuffer();
+		const std::string&		sendBuffer() const;
+		bool					hasPendingOutput() const;
+		void					consumeSentBytes(std::size_t sentBytes);
+		bool					popNextLine(std::string& line);
 };
-
-
-
-
 
 #endif
