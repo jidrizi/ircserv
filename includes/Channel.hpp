@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/14 21:07:54 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/15 23:43:14 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/16 16:45:03 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@
 class Channel
 {
     private:
-        std::map<std::string, Channel*> channels;
+        // std::map<std::string, Channel*> channels;
         std::string             name;
         std::string             topic;
         std::string             key;
@@ -71,6 +71,19 @@ class Channel
 
         void	                addOperator(int fd);
         bool	                hasOperator(int fd) const;
+        void	                removeOperator(int fd);
+        void                	ensureOperator();
+        
+
+        bool                	hasUserLimit() const;
+        std::size_t	            getUserLimit() const;
+		void			    	setUserLimit(std::size_t value);
+        void        	        clearUserLimit();
+        bool        	        empty() const;
+
+        
+
+
 };
 
 #endif
