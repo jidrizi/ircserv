@@ -30,7 +30,7 @@ class ClientSession;
 struct Command;
 class Channel;
 
-# include "Handle.hpp"
+# include "Handles.hpp"
 
 class Server
 {
@@ -58,6 +58,7 @@ class Server
 		std::vector<std::string>	splitByComma(const std::string& text) const;
 		void			broadcastToChannel(const Channel& channel, const std::string& message, int exceptFd);
 		std::string		buildChannelMode(const Channel& channel) const;
+        ClientSession*	findClientByFd(int clientFd);
 
 		friend class Handle; // Handle is allowed to access private members of the server
 

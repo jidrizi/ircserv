@@ -1,15 +1,16 @@
-#include "Handle.hpp"
-#include "Server.hpp"
-#include "Client.hpp"
-#include "Command.hpp"
+# include "Handles.hpp"
+# include "Server.hpp"
+# include "Client.hpp"
+# include "Command.hpp"
+# include "Channel.hpp"
 
-Handle::Handle(Server& serverRef)
+Handles::Handles(Server& serverRef)
 	: server(serverRef)
 {
 }
 
 
-bool Handle::matchSimple(const std::string& mask, const std::string& nick)
+bool Handles::matchSimple(const std::string& mask, const std::string& nick)
 {
     // no wildcard → exact match
     if (mask.find('*') == std::string::npos)
@@ -25,7 +26,7 @@ bool Handle::matchSimple(const std::string& mask, const std::string& nick)
     return false;
 }
 
-int	Handle::handleCap(ClientSession& client, Command& command)
+int	Handles::handleCap(ClientSession& client, Command& command)
 {
 	if (command.paramList.empty() || command.paramList[0] != "LS")
 		return 0;
@@ -35,7 +36,7 @@ int	Handle::handleCap(ClientSession& client, Command& command)
 	return 0;
 }
 
-int	Handle::handleNick(ClientSession& client, Command& command)
+int	Handles::handleNick(ClientSession& client, Command& command)
 {
 	if (client.user().registrationState < 2)
 	{
@@ -74,7 +75,7 @@ int	Handle::handleNick(ClientSession& client, Command& command)
 
 
 
-int	Handle::handleUser(ClientSession& client, Command& command)
+int	Handles::handleUser(ClientSession& client, Command& command)
 {
 	if (client.user().registrationState < 2)
 	{
@@ -111,7 +112,7 @@ int	Handle::handleUser(ClientSession& client, Command& command)
 	return 0;
 }
 
-int	Handle::handlePass(ClientSession& client, Command& command)
+int	Handles::handlePass(ClientSession& client, Command& command)
 {
 	if (client.user().registrationState == 0)
 	{
@@ -138,7 +139,7 @@ int	Handle::handlePass(ClientSession& client, Command& command)
 	return 0;
 }
 
-int	Handle::handlePreCommandChecks(ClientSession& client, Command& command)
+int	Handles::handlePreCommandChecks(ClientSession& client, Command& command)
 {
 	if (client.user().registrationState < 4)
 	{
@@ -155,7 +156,7 @@ int	Handle::handlePreCommandChecks(ClientSession& client, Command& command)
 
 
 
-int	Handle::handleWhois(ClientSession& client, Command& command)
+int	Handles::handleWhois(ClientSession& client, Command& command)
 {
 	std::string masks = command.paramList[0];
 	std::vector<std::string> maskList = server.splitByComma(masks);
@@ -179,6 +180,67 @@ int	Handle::handleWhois(ClientSession& client, Command& command)
 				return 0;
 			}
 			return (client.sendBuffer() =+ ERR_NOSUCHNICK(server.host, client.user().nickname, nick), -1);
+		}
+	}
+	return 0;
+}
+
+
+int	Handles::handlePart(ClientSession& client, Command& command)
+{
+	if (client.user().registrationState < 4)
+		return (client.sendBuffer() += ERR_NOTREGISTERED(server.host), -1);
+	if (command.paramList.empty())
+		return (client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, "PART"), -1);
+
+	std::vector<std::string> targets = server.splitByComma(command.paramList[0]);
+	std::string reason = "Leaving";
+	if (command.paramList.size() > 1)
+		reason = command.paramList[1];
+
+	for (std::vector<std::string>::iterator it = targets.begin(); it != targets.end(); ++it)
+	{
+		std::map<std::string, Channel*>::iterator chIt = server.channels.find(*it);
+		if (chIt == server.channels.end())
+		{
+			client.sendBuffer() += ERR_NOSUCHCHANNEL(server.host, *it);
+			continue;
+		}
+		Channel& channel = *chIt->second;
+		if (!channel.hasMember(client.fd()))
+		{
+			client.sendBuffer() += ERR_NOTONCHANNEL(server.host, channel.getName());
+			continue;
+		}
+
+		// Remove leaving user first, then let channel promote only if needed
+		channel.removeMember(client.fd());
+
+		const int newOpFd = channel.ensureOperator();
+		if (newOpFd != -1)
+		{
+			ClientSession* newOp = server.findClientByFd(newOpFd);
+			if (newOp)
+			{
+				std::string modeMsg =
+					":" + newOp->user().source() +
+					" MODE " + channel.getName() +
+					" +o " + newOp->user().nickname +
+					"\r\n";
+				server.broadcastToChannel(channel, modeMsg, -1);
+			}
+		}
+
+		// PART broadcast after channel state is updated
+		const std::string partMsg =
+			RPL_PART(client.user().source(), channel.getName(), reason);
+		server.broadcastToChannel(channel, partMsg, -1);
+
+		// Cleanup channel if empty
+		if (channel.empty())
+		{
+			delete chIt->second;
+			server.channels.erase(chIt);
 		}
 	}
 	return 0;

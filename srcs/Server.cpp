@@ -228,3 +228,13 @@ void	Server::removeClientFromAllChannels(int clientFd)
 			++it;
 	}
 }
+
+ClientSession*	Server::findClientByFd(int clientFd)
+{
+	for (std::vector<ClientSession*>::iterator it = clients.begin(); it != clients.end(); ++it)
+	{
+		if ((*it)->fd() == clientFd)
+			return *it;
+	}
+	return NULL;
+}
