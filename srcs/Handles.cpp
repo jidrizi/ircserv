@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Handles.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: ckappe <ckappe@student.42heilbronn.de>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/15 16:26:57 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/17 04:35:52 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/17 17:15:55 by ckappe           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,11 +17,43 @@
 #include "Channel.hpp"
 #include "Server.hpp"
 #include "Replies.hpp"
+#include <cctype>
 #include <vector>
 
 Handles::Handles(Server& serverRef)
 	: server(serverRef)
 {
+}
+
+std::vector<std::string> Handles::splitByComma(const std::string& text) const
+{
+	std::vector<std::string> values;
+	std::string token;
+	for (std::size_t i = 0; i < text.size(); ++i)
+	{
+		if (text[i] == ',')
+		{
+			if (!token.empty())
+				values.push_back(token);
+			token.clear();
+			continue;
+		}
+		token += text[i];
+	}
+	if (!token.empty())
+		values.push_back(token);
+	return values;
+}
+
+void	Handles::broadcastToChannel(const Channel& channel, const std::string& message, int exceptFd)
+{
+	const std::set<int>& members = channel.getMembers();
+	for (std::set<int>::const_iterator it = members.begin(); it != members.end(); ++it)
+	{
+		if (*it == exceptFd)
+			continue;
+		server.sendToClient(*it, message);
+	}
 }
 
 void Handles::processClientLine(ClientSession& client, const std::string& line)
@@ -245,17 +277,79 @@ int	Handles::handlePreCommandChecks(ClientSession& client, Command& command)
 }
 
 // handleMode 
-int Handles::handleMode(ClientSession& client, Command& command)
+/* int Handles::handleMode(ClientSession& client, Command& command)
 {
     (void)client;
     (void)command;
     return 0;
+} */
+
+int	Handles::handlePart(ClientSession& client, Command& command)
+{
+	if (client.user().registrationState < 4)
+		return (client.sendBuffer() += ERR_NOTREGISTERED(server.host), -1);
+	if (command.paramList.empty())
+		return (client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, "PART"), -1);
+
+	std::vector<std::string> targets = splitByComma(command.paramList[0]);
+	std::string reason = "Leaving";
+	if (command.paramList.size() > 1)
+		reason = command.paramList[1];
+
+	for (std::vector<std::string>::iterator it = targets.begin(); it != targets.end(); ++it)
+	{
+		std::map<std::string, Channel*>::iterator chIt = channels.find(*it);
+		if (chIt == channels.end())
+		{
+			client.sendBuffer() += ERR_NOSUCHCHANNEL(server.host, *it);
+			continue;
+		}
+		Channel& channel = *chIt->second;
+		if (!channel.hasMember(client.fd()))
+		{
+			client.sendBuffer() += ERR_NOTONCHANNEL(server.host, channel.getName());
+			continue;
+		}
+
+		// Remove leaving user first, then let channel promote only if needed
+		channel.removeMember(client.fd());
+
+		const int newOpFd = channel.ensureOperator();
+		if (newOpFd != -1)
+		{
+			ClientSession* newOp = server.findClientByFd(newOpFd);
+			if (newOp)
+			{
+				std::string modeMsg =
+					":" + newOp->user().source() +
+					" MODE " + channel.getName() +
+					" +o " + newOp->user().nickname +
+					"\r\n";
+
+				broadcastToChannel(channel, modeMsg, -1);
+			}
+		}
+
+		// PART broadcast after channel state is updated
+		const std::string partMsg =
+			RPL_PART(client.user().source(), channel.getName(), reason);
+
+		broadcastToChannel(channel, partMsg, -1);
+
+		// Cleanup channel if empty
+		if (channel.empty())
+		{
+			delete chIt->second;
+			channels.erase(chIt);
+		}
+	}
+	return 0;
 }
 
 int	Handles::handleWhois(ClientSession& client, Command& command)
 {
 	std::string masks = command.paramList[0];
-	std::vector<std::string> maskList = server.splitByComma(masks);
+	std::vector<std::string> maskList = splitByComma(masks);
 	if (masks.empty())
 		return (client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, command.commandName), -1);
 	for (size_t i = 0; i < maskList.size(); i++)

@@ -51,6 +51,7 @@ class Handles
         bool	                    isValidChannelName(const std::string& channelName) const;
         void	                    broadcastToChannel(const Channel& channel, const std::string& message, int exceptFd);
         
+        
     public:
         explicit                    Handles(Server& serverRef);
         void                    	processClientLine(ClientSession& client, const std::string& line);
