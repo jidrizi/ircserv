@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/15 16:26:57 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/17 20:31:23 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/17 20:39:09 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -496,6 +496,11 @@ int	Handles::handleMode(ClientSession& client, Command& command)
 
 int	Handles::handleKick(ClientSession& client, Command& command)
 {
+	if (client.user().registrationState < 4)
+		return (client.sendBuffer() += ERR_NOTREGISTERED(server.host), -1);
+	if (command.paramList.size() < 2)
+		return (client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, "KICK"), -1);
+
 		const std::string channelName = command.paramList[0];
 	const std::string reason = command.paramList.size() > 2 ? command.paramList[2] : client.user().nickname;
 	std::map<std::string, Channel*>::iterator chIt = channels.find(channelName);
@@ -546,8 +551,11 @@ int	Handles::handleKick(ClientSession& client, Command& command)
 
 int Handles::handleTopic(ClientSession& client, Command& command)
 {
-	if (command.paramList.empty())
+	if (client.user().registrationState < 4)
+		return (client.sendBuffer() += ERR_NOTREGISTERED(server.host), -1);
+	if (command.paramList.size() < 1)
 		return (client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, "TOPIC"), -1);
+	
 	const std::string channelName = command.paramList[0];
 	std::string name = "";
 	int i = 1;
@@ -738,14 +746,6 @@ int	Handles::handlePreCommandChecks(ClientSession& client, Command& command)
 	client.sendBuffer() += ERR_UNKNOWNCOMMAND(server.host, command.commandName, client.user().nickname);
 	return 1;
 }
-
-// handleMode 
-/* int Handles::handleMode(ClientSession& client, Command& command)
-{
-    (void)client;
-    (void)command;
-    return 0;
-} */
 
 int	Handles::handlePart(ClientSession& client, Command& command)
 {
