@@ -34,7 +34,7 @@
 class ClientSession;
 struct Command;
 class Channel;
-// class Handles;
+class Handles;
 # include "Handles.hpp"
 
 class Server
@@ -56,11 +56,9 @@ class Server
 		void	    initSocket();
 
 		bool			isNicknameInUse(const std::string& nickname, int excludingFd) const;
-		bool			isValidNickname(const std::string& nickname) const;
 		ClientSession*	findClientByFd(int clientFd);
 		ClientSession*	findClientByNick(const std::string& nickname);
 		void			receiveFromClient(int clientFd);
-		void			processClientLine(ClientSession& client, const std::string& line);
 		void			tryCompleteRegistration(ClientSession& client);
 		void			sendToClient(int fd, const std::string& message);
 		void			sendPendingToClient(int clientFd);
@@ -70,7 +68,6 @@ class Server
         void						closeAllFds();
 		void						syncWriteInterest();
         void						acceptNewClient();
-		std::string		            buildChannelMode(const Channel& channel) const;
         std::string	                buildNamesList(const Channel& channel) const;
         
         

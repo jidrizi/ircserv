@@ -82,27 +82,6 @@ bool	Server::isNicknameInUse(const std::string& nickname, int excludingFd) const
 	return false;
 }
 
-bool	Server::isValidNickname(const std::string& nickname) const
-{
-	if (nickname.empty())
-		return false;
-	if (nickname.size() > 30)
-		return false;
-	if (nickname[0] == '#' || nickname[0] == '&' || nickname[0] == ':'
-		|| nickname[0] == '@' || std::isdigit(nickname[0]) || std::isspace(nickname[0]))
-		return false;
-	if (nickname.size() < 3)
-		return false;
-	for (std::size_t i = 0; i < nickname.size(); ++i)
-	{
-		const char c = nickname[i];
-		if (!std::isalnum(c) && c != '\\' && c != '|'
-			&& c != '[' && c != ']' && c != '{'
-			&& c != '}' && c != '-' && c != '_')
-			return false;
-	}
-	return true;
-}
 
 ClientSession*	Server::findClientByFd(int clientFd)
 {
@@ -148,58 +127,8 @@ void	Server::receiveFromClient(int clientFd)
 	while (client->popNextLine(line))
 	{
 		std::cout << YEL << "RECV <" << clientFd << ">: " << WHI << line << std::endl;
-		processClientLine(*client, line);
+		handler.processClientLine(*client, line);
 	}
-}
-
-void	Server::processClientLine(ClientSession& client, const std::string& line)
-{
-	handler.processClientLine(client, line);
-	// Command command = parseCommand(line);
-	// if (command.commandName.empty())
-	// 	return;
-
-	// if (command.type == CMD_CAP)
-	// {
-	// 	handler.handleCap(client, command);
-	// 	return;
-	// }
-	// if (command.type == CMD_PASS)
-	// {
-	// 	handler.handlePass(client, command);
-	// 	return;
-	// }
-	// if (command.type == CMD_NICK)
-	// {
-	// 	handler.handleNick(client, command);
-	// 	tryCompleteRegistration(client);
-	// 	return;
-	// }
-	// if (command.type == CMD_USER)
-	// {
-	// 	handler.handleUser(client, command);
-	// 	tryCompleteRegistration(client);
-	// 	return;
-	// }
-	// if (command.type == CMD_MODE)
-	// {
-	// 	handler.handleMode(client, command);
-	// 	return;
-	// }
-	// if (command.type == CMD_PING)
-	// {
-	// 	if (!command.paramsText.empty())
-	// 		client.sendBuffer() += ":" + host + " PONG :" + command.paramsText + "\r\n";
-	// 	else
-	// 		client.sendBuffer() += ":" + host + " PONG :" + host + "\r\n";
-	// 	return;
-	// }
-	// if (command.type == CMD_WHOIS)
-	// {
-	// 	handler.handleWhois(client, command);
-	// 	return;
-	// }
-	// handler.handlePreCommandChecks(client, command);
 }
 
 void	Server::tryCompleteRegistration(ClientSession& client)
@@ -351,31 +280,6 @@ void	Server::acceptNewClient()
 	pfd.revents = 0;
 	pollFds.push_back(pfd);
 	std::cout << GRE << "Client <" << clientFd << "> connected from " << ipBuffer << WHI << std::endl;
-}
-
-
-std::string	Server::buildChannelMode(const Channel& channel) const
-{
-	std::string mode("+");
-	std::string args;
-
-	if (channel.isInviteOnly())
-		mode += "i";
-	if (channel.isTopicRestricted())
-		mode += "t";
-	if (channel.hasKey())
-	{
-		mode += "k";
-		args += " " + channel.getKey();
-	}
-	if (channel.hasUserLimit())
-	{
-		std::ostringstream limit;
-		limit << channel.getUserLimit();
-		mode += "l";
-		args += " " + limit.str();
-	}
-	return mode + args;
 }
 
 std::string	Server::buildNamesList(const Channel& channel) const

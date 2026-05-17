@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/15 16:26:57 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/17 17:57:29 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/17 20:31:23 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,36 +39,28 @@ bool	Handles::isValidChannelName(const std::string& channelName) const
 	return true;
 }
 
-std::vector<std::string> Handles::splitByComma(const std::string& text) const
+bool	Handles::isValidNickname(const std::string& nickname) const
 {
-	std::vector<std::string> values;
-	std::string token;
-	for (std::size_t i = 0; i < text.size(); ++i)
+	if (nickname.empty())
+		return false;
+	if (nickname.size() > 30)
+		return false;
+	if (nickname[0] == '#' || nickname[0] == '&' || nickname[0] == ':'
+		|| nickname[0] == '@' || std::isdigit(nickname[0]) || std::isspace(nickname[0]))
+		return false;
+	if (nickname.size() < 3)
+		return false;
+	for (std::size_t i = 0; i < nickname.size(); ++i)
 	{
-		if (text[i] == ',')
-		{
-			if (!token.empty())
-				values.push_back(token);
-			token.clear();
-			continue;
-		}
-		token += text[i];
+		const char c = nickname[i];
+		if (!std::isalnum(c) && c != '\\' && c != '|'
+			&& c != '[' && c != ']' && c != '{'
+			&& c != '}' && c != '-' && c != '_')
+			return false;
 	}
-	if (!token.empty())
-		values.push_back(token);
-	return values;
+	return true;
 }
 
-void	Handles::broadcastToChannel(const Channel& channel, const std::string& message, int exceptFd)
-{
-	const std::set<int>& members = channel.getMembers();
-	for (std::set<int>::const_iterator it = members.begin(); it != members.end(); ++it)
-	{
-		if (*it == exceptFd)
-			continue;
-		server.sendToClient(*it, message);
-	}
-}
 
 void Handles::processClientLine(ClientSession& client, const std::string& line)
 {
@@ -150,6 +142,39 @@ void Handles::processClientLine(ClientSession& client, const std::string& line)
 }
 
 
+std::vector<std::string> Handles::splitByComma(const std::string& text) const
+{
+	std::vector<std::string> values;
+	std::string token;
+	for (std::size_t i = 0; i < text.size(); ++i)
+	{
+		if (text[i] == ',')
+		{
+			if (!token.empty())
+				values.push_back(token);
+			token.clear();
+			continue;
+		}
+		token += text[i];
+	}
+	if (!token.empty())
+		values.push_back(token);
+	return values;
+}
+
+void	Handles::broadcastToChannel(const Channel& channel, const std::string& message, int exceptFd)
+{
+	const std::set<int>& members = channel.getMembers();
+	for (std::set<int>::const_iterator it = members.begin(); it != members.end(); ++it)
+	{
+		if (*it == exceptFd)
+			continue;
+		server.sendToClient(*it, message);
+	}
+}
+
+
+
 bool Handles::matchSimple(const std::string& mask, const std::string& nick)
 {
     // no wildcard → exact match
@@ -188,7 +213,7 @@ int	Handles::handleNick(ClientSession& client, Command& command)
 		client.sendBuffer() += ERR_NONICKNAMEGIVEN(server.host);
 		return -1;
 	}
-	if (!server.isValidNickname(command.paramsText))
+	if (!isValidNickname(command.paramsText))
 	{
 		client.sendBuffer() += ERR_ERRONEUSNICKNAME(server.host, command.paramsText);
 		return -1;
@@ -215,11 +240,8 @@ int	Handles::handleNick(ClientSession& client, Command& command)
 
 int     Handles::handleJoin(ClientSession& client, Command& command)
 {
-	if (client.user().registrationState < 2)
-	{
-		client.sendBuffer() += ERR_NOTREGISTERED(server.host);
-		return -1;
-	}
+	if (client.user().registrationState < 4)
+		return (client.sendBuffer() += ERR_NOTREGISTERED(server.host), -1);
 	if (command.paramList.empty())
 		return (client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, "JOIN"), -1);
 
@@ -253,12 +275,12 @@ int     Handles::handleJoin(ClientSession& client, Command& command)
 
 		if (channel->isInviteOnly() && !channel->isInvited(client.fd()))
 		{
-			//send error
+			client.sendBuffer() += ERR_INVITEONLYCHAN(server.host, channel->getName());
 			continue;
 		}
 		if (channel->isFull())
 		{
-			//send error
+			client.sendBuffer() += ERR_CHANNELISFULL(client.user().source(), channel->getName());
 			continue;
 		}
 		if (channel->hasKey())
@@ -272,7 +294,7 @@ int     Handles::handleJoin(ClientSession& client, Command& command)
 			}
 			if (!channel->keyMatches(givenKey))
 			{
-				//send error
+				client.sendBuffer() += ERR_BADCHANNELKEY(client.user().source(), channel->getName());
 				continue;
 			}
 		}
@@ -389,7 +411,7 @@ int	Handles::handleMode(ClientSession& client, Command& command)
 
 	if (command.paramList.size() == 1)
 		return (client.sendBuffer() += RPL_CHANNELMODEIS(server.host, channel.getName(),
-			client.user().nickname, server.buildChannelMode(channel)), 0);
+			client.user().nickname, channel.buildChannelMode(channel)), 0);
 	if (!channel.hasOperator(client.fd()))
 		return (client.sendBuffer() += ERR_NOPRIVILIGES(server.host), -1);
 

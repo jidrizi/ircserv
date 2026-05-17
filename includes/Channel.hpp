@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/14 21:07:54 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/17 00:19:31 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/17 19:33:43 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 
 # include <set>
 # include <string>
+# include <sstream>
 
 class Channel
 {
@@ -63,10 +64,10 @@ class Channel
         
 		bool    				isInvited(int fd) const;
         bool			    	isInviteOnly() const;
-		bool	    			isTopicRestricted() const;
-		bool		    		isFull() const;
-		
-        void				    setInviteOnly(bool value);
+        void		            setInviteOnly(bool value);
+        bool		    		isFull() const;
+
+        bool	    			isTopicRestricted() const;
 		void				    setTopicRestricted(bool value);
         
         int	                	getNextOperatorFd(int excludedFd) const;
@@ -84,6 +85,9 @@ class Channel
         void        	        clearUserLimit();
 
         bool        	        empty() const;
+        
+		std::string		        buildChannelMode(const Channel& channel) const;
+    
 };
 
 #endif

@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/14 14:07:15 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/17 00:19:06 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/17 19:19:46 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -196,4 +196,28 @@ void Channel::setOperator(int fd)
 bool	Channel::empty() const
 {
 	return members.empty();
+}
+
+std::string	Channel::buildChannelMode(const Channel& channel) const
+{
+	std::string mode("+");
+	std::string args;
+
+	if (channel.isInviteOnly())
+		mode += "i";
+	if (channel.isTopicRestricted())
+		mode += "t";
+	if (channel.hasKey())
+	{
+		mode += "k";
+		args += " " + channel.getKey();
+	}
+	if (channel.hasUserLimit())
+	{
+		std::ostringstream limit;
+		limit << channel.getUserLimit();
+		mode += "l";
+		args += " " + limit.str();
+	}
+	return mode + args;
 }

@@ -13,10 +13,11 @@
 
 #ifndef HANDLES_HPP
 # define HANDLES_HPP
-// # include "ft_irc.hpp"
 
 # include <string>
 # include <map>
+# include <vector>
+
 class Server;
 class ClientSession;
 struct Command;
@@ -28,7 +29,7 @@ class Handles
         Server& server;
         std::map<std::string, Channel*> channels;
 
-		static bool	matchSimple(const std::string& mask, const std::string& nick);
+		static bool	                matchSimple(const std::string& mask, const std::string& nick);
         int                         handleJoin(ClientSession& client, Command& command);
         int                         handleTopic(ClientSession& client, Command& command);
         int                         handlePrivmsg(ClientSession& client, Command& command);
@@ -49,12 +50,14 @@ class Handles
         
         std::vector<std::string>    splitByComma(const std::string& text) const;
         bool	                    isValidChannelName(const std::string& channelName) const;
+		bool            			isValidNickname(const std::string& nickname) const;
+        
         void	                    broadcastToChannel(const Channel& channel, const std::string& message, int exceptFd);
         
         
-    public:
+        public:
+		void			            processClientLine(ClientSession& client, const std::string& line);
         explicit                    Handles(Server& serverRef);
-        void                    	processClientLine(ClientSession& client, const std::string& line);
 
 
 };
