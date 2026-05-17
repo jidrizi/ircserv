@@ -6,7 +6,7 @@
 /*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/15 16:26:57 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/17 20:39:09 by fefo             ###   ########.fr       */
+/*   Updated: 2026/05/17 21:21:12 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -204,25 +204,13 @@ int	Handles::handleCap(ClientSession& client, Command& command)
 int	Handles::handleNick(ClientSession& client, Command& command)
 {
 	if (client.user().registrationState < 2)
-	{
-		client.sendBuffer() += ERR_NOTREGISTERED(server.host);
-		return -1;
-	}
+		return (client.sendBuffer() += ERR_NOTREGISTERED(server.host), -1);
 	if (command.paramsText.empty())
-	{
-		client.sendBuffer() += ERR_NONICKNAMEGIVEN(server.host);
-		return -1;
-	}
+		return (client.sendBuffer() += ERR_NONICKNAMEGIVEN(server.host), -1);
 	if (!isValidNickname(command.paramsText))
-	{
-		client.sendBuffer() += ERR_ERRONEUSNICKNAME(server.host, command.paramsText);
-		return -1;
-	}
+		return (client.sendBuffer() += ERR_ERRONEUSNICKNAME(server.host, command.paramsText), -1);
 	if (server.isNicknameInUse(command.paramsText, client.fd()))
-	{
-		client.sendBuffer() += ERR_NICKNAMEINUSE(server.host, command.paramsText);
-		return -1;
-	}
+		return (client.sendBuffer() += ERR_NICKNAMEINUSE(server.host, command.paramsText), -1);
 	if (client.user().registrationState == 4 && client.user().nickname != "*")
 	{
 		client.sendBuffer() += RPL_NICKCHANGE(client.user().nickname, client.user().username,
@@ -505,21 +493,12 @@ int	Handles::handleKick(ClientSession& client, Command& command)
 	const std::string reason = command.paramList.size() > 2 ? command.paramList[2] : client.user().nickname;
 	std::map<std::string, Channel*>::iterator chIt = channels.find(channelName);
 	if (chIt == channels.end())
-	{
-		//send error msg
-		return (-1);
-	}
+		return (client.sendBuffer() += ERR_NOSUCHCHANNEL(server.host, channelName), -1);
 	Channel& channel = *chIt->second;
 	if (!channel.hasMember(client.fd()))
-	{
-		//send error msg
-		return (-1);
-	}
+		return (client.sendBuffer() += ERR_NOTONCHANNEL(server.host, channelName), -1);
 	if (!channel.hasOperator(client.fd()))
-	{
-		//send error msg
-		return (-1);
-	}
+		return (client.sendBuffer() += ERR_CHANOPRIVSNEEDED(server.host, channelName), -1);
 
 	std::vector<std::string> targets = splitByComma(command.paramList[1]);
 	for (std::vector<std::string>::iterator it = targets.begin(); it != targets.end(); ++it)
@@ -527,16 +506,16 @@ int	Handles::handleKick(ClientSession& client, Command& command)
 		ClientSession* target = server.findClientByNick(*it);
 		if (!target)
 		{
-			//send error
+			client.sendBuffer() += ERR_NOSUCHNICK(server.host, client.user().nickname, *it);
 			continue;
 		}
 		if (!channel.hasMember(target->fd()))
 		{
-			//send error
+			client.sendBuffer() += ERR_USERNOTINCHANNEL(server.host, *it, channelName);
 			continue;
 		}
 
-		const std::string kickMsg = "RPLY_KICK";
+		const std::string kickMsg = RPL_KICK(client.user().source(), channelName, reason, *it);
 		broadcastToChannel(channel, kickMsg, -1);
 		channel.removeMember(target->fd());
 	}
@@ -627,42 +606,33 @@ int	Handles::handleUser(ClientSession& client, Command& command)
 
 int	Handles::handleInvite(ClientSession& client, Command& command)
 {
+	if (client.user().registrationState < 4)
+		return (client.sendBuffer() += ERR_NOTREGISTERED(server.host), -1);
+	if (command.paramList.size() < 2)
+		return (client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, "INVITE"), -1);
+
 	const std::string targetNick = command.paramList[0];
 	const std::string channelName = command.paramList[1];
 
 	std::map<std::string, Channel*>::iterator chIt = channels.find(channelName);
 	if (chIt == channels.end())
-	{
-		std::cout << "Error msg" << std::endl;
-		return (-1);
-	}
+		return (client.sendBuffer() += ERR_NOSUCHCHANNEL(server.host, channelName), -1);
 	Channel& channel = *chIt->second;
 	if (!channel.hasMember(client.fd()))
-	{
-		std::cout << "Error msg" << std::endl;
-		return (-1);
-	}
+		return (client.sendBuffer() += ERR_NOTONCHANNEL(server.host, channelName), -1);
 	if (channel.isInviteOnly() && !channel.hasOperator(client.fd()))
-	{
-		std::cout << "Error msg" << std::endl;
-		return (-1);
-	}	
+		return (client.sendBuffer() += ERR_CHANOPRIVSNEEDED(server.host, channelName), -1);
 
 	ClientSession* target = server.findClientByNick(targetNick);
 	if (!target)
-	{
-		std::cout << "Error msg" << std::endl;
-		return (-1);
-	}
+		return (client.sendBuffer() += ERR_NOSUCHNICK(server.host, client.user().nickname, targetNick), -1);
 	if (channel.hasMember(target->fd()))
-	{
-		std::cout << "Error msg" << std::endl;
-		return (-1);
-	}
+		return (client.sendBuffer() += ERR_USERONCHANNEL(server.host, client.user().nickname, targetNick, channelName), -1);
 
 	channel.addInvite(target->fd());
-	std::cout << "To Send RPL_INVITING" << std::endl;
-	std::cout << "To Send RPL_INVITE" << std::endl;
+	client.sendBuffer() += RPL_INVITING(server.host, client.user().nickname, targetNick, channelName);
+	target->sendBuffer() += RPL_INVITE(client.user().source(), targetNick, channelName);
+
 	return 0;
 }
 
