@@ -6,7 +6,7 @@
 /*   By: ckappe <ckappe@student.42heilbronn.de>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/15 16:26:57 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/17 17:15:55 by ckappe           ###   ########.fr       */
+/*   Updated: 2026/05/17 17:18:16 by ckappe           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -199,7 +199,82 @@ int	Handles::handleNick(ClientSession& client, Command& command)
 	return 0;
 }
 
+int     Handles::handleJoin(ClientSession& client, Command& command)
+{
+	if (command.paramList.empty())
+		return (client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, "JOIN"), -1);
 
+	// trying to join multiple channels at the same time
+	std::vector<std::string> targets = splitByComma(command.paramList[0]);
+    for (std::vector<std::string>::iterator it = targets.begin(); it != targets.end(); ++it)
+    {
+        if (!isValidChannelName(*it))
+		{
+          client.sendBuffer() += ERR_BADCHANMASK(*it);
+			continue;
+		}
+        Channel* channel = NULL;
+        std::map<std::string, Channel*>::iterator chIt = channels.find(*it);
+		if (chIt == channels.end())
+		{
+			channel = new Channel(*it);
+			channels[*it] = channel;
+			if (command.paramList.size() > 1)
+			{
+				std::vector<std::string> keys = splitByComma(command.paramList[1]);
+				if (!keys.empty())
+					channel->setKey(keys[0]);
+			}
+		}
+		else
+			channel = chIt->second;
+
+		if (channel->hasMember(client.fd()))
+			continue;
+
+		if (channel->isInviteOnly() && !channel->isInvited(client.fd()))
+		{
+			//send error
+			continue;
+		}
+		if (channel->isFull())
+		{
+			//send error
+			continue;
+		}
+		if (channel->hasKey())
+		{
+			std::string givenKey;
+			if (command.paramList.size() > 1)
+			{
+				std::vector<std::string> keys = splitByComma(command.paramList[1]);
+				if (!keys.empty())
+					givenKey = keys[0];
+			}
+			if (!channel->keyMatches(givenKey))
+			{
+				//send error
+				continue;
+			}
+		}
+
+		channel->addMember(client.fd());
+		channel->removeInvite(client.fd());
+		if (channel->getMembers().size() == 1)
+			channel->addOperator(client.fd());
+
+		const std::string joinMsg = RPL_JOIN(client.user().nickname, client.user().username,
+			client.user().hostname, channel->getName());
+		broadcastToChannel(*channel, joinMsg, -1);
+
+		client.sendBuffer() += RPL_NAMERPLY(server.host, client.user().nickname,
+			channel->getName(), server.buildNamesList(*channel));
+		client.sendBuffer() += RPL_ENDOFNAMES(server.host, client.user().nickname,
+			channel->getName());
+
+	}
+	return 0;
+}
 
 int	Handles::handleUser(ClientSession& client, Command& command)
 {
