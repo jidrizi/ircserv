@@ -6,7 +6,7 @@
 /*   By: ckappe <ckappe@student.42heilbronn.de>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/15 16:26:57 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/17 17:22:39 by ckappe           ###   ########.fr       */
+/*   Updated: 2026/05/17 17:44:13 by ckappe           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -290,6 +290,85 @@ int     Handles::handleJoin(ClientSession& client, Command& command)
 	return 0;
 }
 
+static void splitModeInputs(const Command& command, std::vector<std::string>& modeTokens,
+		std::vector<std::string>& modeArgs)
+	{
+		for (std::size_t i = 1; i < command.paramList.size(); ++i)
+		{
+			const std::string& token = command.paramList[i];
+			if (!token.empty() && (token[0] == '+' || token[0] == '-'))
+				modeTokens.push_back(token);
+			else
+				modeArgs.push_back(token);
+		}
+	}
+
+	static bool parsePositiveLimit(const std::string& rawLimit, std::size_t& parsed)
+	{
+		for (std::size_t j = 0; j < rawLimit.size(); ++j)
+		{
+			if (!std::isdigit(static_cast<unsigned char>(rawLimit[j])))
+				return false;
+		}
+		const int value = std::atoi(rawLimit.c_str());
+		if (value <= 0)
+			return false;
+		parsed = static_cast<std::size_t>(value);
+		return true;
+	}
+
+	static int applySimpleModeFlag(Channel& channel, bool adding, char flag, std::string& appliedModes)
+	{
+		if (flag == 'i')
+			channel.setInviteOnly(adding);
+		else if (flag == 't')
+			channel.setTopicRestricted(adding);
+		else
+			return -1;
+		appliedModes += flag;
+		return 0;
+	}
+
+	static int applyKeyMode(const std::string& host, ClientSession& client, Channel& channel,
+		bool adding, const std::vector<std::string>& modeArgs, std::size_t& argIndex,
+		std::string& appliedModes, std::string& appliedArgs)
+	{
+		if (adding)
+		{
+			if (argIndex >= modeArgs.size())
+					return (client.sendBuffer() += ERR_NEEDMOREPARAMS(host, "MODE"), -1);
+			channel.setKey(modeArgs[argIndex]);
+			appliedArgs += " " + modeArgs[argIndex];
+			++argIndex;
+		}
+		else
+			channel.clearKey();
+		appliedModes += 'k';
+		return 0;
+	}
+
+	static int applyLimitMode(const std::string& host, ClientSession& client, Channel& channel,
+		bool adding, const std::vector<std::string>& modeArgs, std::size_t& argIndex,
+		std::string& appliedModes, std::string& appliedArgs)
+	{
+		if (adding)
+		{
+			if (argIndex >= modeArgs.size())
+					return (client.sendBuffer() += ERR_NEEDMOREPARAMS(host, "MODE"), -1);
+			std::size_t parsedLimit = 0;
+			if (!parsePositiveLimit(modeArgs[argIndex], parsedLimit))
+					return (client.sendBuffer() += ERR_NEEDMOREPARAMS(host, "MODE"), -1);
+			channel.setUserLimit(parsedLimit);
+			appliedArgs += " " + modeArgs[argIndex];
+			++argIndex;
+		}
+		else
+			channel.clearUserLimit();
+		appliedModes += 'l';
+		return 0;
+	}
+
+
 int	Handles::handleMode(ClientSession& client, Command& command)
 {
 	if (client.user().registrationState < 4)
@@ -311,14 +390,7 @@ int	Handles::handleMode(ClientSession& client, Command& command)
 
 	std::vector<std::string> modeTokens;
 	std::vector<std::string> modeArgs;
-	for (std::size_t i = 1; i < command.paramList.size(); ++i)
-	{
-		const std::string& token = command.paramList[i];
-		if (!token.empty() && (token[0] == '+' || token[0] == '-'))
-			modeTokens.push_back(token);
-		else
-			modeArgs.push_back(token);
-	}
+	splitModeInputs(command, modeTokens, modeArgs);
 	if (modeTokens.empty())
 		return (client.sendBuffer() += ERR_UNKNOWNMODE(server.host, command.paramList[1]), -1);
 
@@ -344,52 +416,22 @@ int	Handles::handleMode(ClientSession& client, Command& command)
 				return (client.sendBuffer() += ERR_UNKNOWNMODE(server.host, std::string(1, flag)), -1);
 
 			const bool adding = currentSign == '+';
-			if (flag == 'i')
+			if (flag == 'i' || flag == 't')
 			{
-				channel.setInviteOnly(adding);
-				appliedModes += flag;
-			}
-			else if (flag == 't')
-			{
-				channel.setTopicRestricted(adding);
-				appliedModes += flag;
+				if (applySimpleModeFlag(channel, adding, flag, appliedModes) != 0)
+					return (client.sendBuffer() += ERR_UNKNOWNMODE(server.host, std::string(1, flag)), -1);
 			}
 			else if (flag == 'k')
 			{
-				if (adding)
-				{
-					if (argIndex >= modeArgs.size())
-						return (client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, "MODE"), -1);
-					channel.setKey(modeArgs[argIndex]);
-					appliedArgs += " " + modeArgs[argIndex];
-					++argIndex;
-				}
-				else
-					channel.clearKey();
-				appliedModes += flag;
+				if (applyKeyMode(server.host, client, channel, adding, modeArgs,
+					argIndex, appliedModes, appliedArgs) != 0)
+					return -1;
 			}
 			else if (flag == 'l')
 			{
-				if (adding)
-				{
-					if (argIndex >= modeArgs.size())
-						return (client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, "MODE"), -1);
-					const std::string& rawLimit = modeArgs[argIndex];
-					for (std::size_t j = 0; j < rawLimit.size(); ++j)
-					{
-						if (!std::isdigit(static_cast<unsigned char>(rawLimit[j])))
-							return (client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, "MODE"), -1);
-					}
-					const int parsedLimit = std::atoi(rawLimit.c_str());
-					if (parsedLimit <= 0)
-						return (client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, "MODE"), -1);
-					channel.setUserLimit(static_cast<std::size_t>(parsedLimit));
-					appliedArgs += " " + rawLimit;
-					++argIndex;
-				}
-				else
-					channel.clearUserLimit();
-				appliedModes += flag;
+				if (applyLimitMode(server.host, client, channel, adding, modeArgs,
+					argIndex, appliedModes, appliedArgs) != 0)
+					return -1;
 			}
 			else if (flag == 'o')
 			{
@@ -408,7 +450,7 @@ int	Handles::handleMode(ClientSession& client, Command& command)
 					channel.removeOperator(target->fd());
 					channel.ensureOperator();
 				}
-				appliedModes += flag;
+				appliedModes += 'o';
 				appliedArgs += " " + targetNick;
 				++argIndex;
 			}
