@@ -296,26 +296,6 @@ void	Server::removeClientFromAllChannels(int clientFd)
 	}
 }
 
-std::vector<std::string> Server::splitByComma(const std::string& text) const
-{
-	std::vector<std::string> values;
-	std::string token;
-	for (std::size_t i = 0; i < text.size(); ++i)
-	{
-		if (text[i] == ',')
-		{
-			if (!token.empty())
-				values.push_back(token);
-			token.clear();
-			continue;
-		}
-		token += text[i];
-	}
-	if (!token.empty())
-		values.push_back(token);
-	return values;
-}
-
 void	Server::closeAllFds()
 {
 	if (serverSocketFd != -1)
@@ -373,16 +353,6 @@ void	Server::acceptNewClient()
 	std::cout << GRE << "Client <" << clientFd << "> connected from " << ipBuffer << WHI << std::endl;
 }
 
-void	Server::broadcastToChannel(const Channel& channel, const std::string& message, int exceptFd)
-{
-	const std::set<int>& members = channel.getMembers();
-	for (std::set<int>::const_iterator it = members.begin(); it != members.end(); ++it)
-	{
-		if (*it == exceptFd)
-			continue;
-		sendToClient(*it, message);
-	}
-}
 
 std::string	Server::buildChannelMode(const Channel& channel) const
 {

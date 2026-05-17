@@ -67,11 +67,9 @@ class Server
 		void			disconnectClient(int clientFd);
 		void			removeClientFromAllChannels(int clientFd);
 		
-        std::vector<std::string>	splitByComma(const std::string& text) const;
         void						closeAllFds();
 		void						syncWriteInterest();
         void						acceptNewClient();
-        void			            broadcastToChannel(const Channel& channel, const std::string& message, int exceptFd);
 		std::string		            buildChannelMode(const Channel& channel) const;
         std::string	                buildNamesList(const Channel& channel) const;
         
