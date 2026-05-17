@@ -54,11 +54,6 @@ std::string&	ClientSession::recvBuffer()
 	return recvBufferData;
 }
 
-std::string&	ClientSession::sendBuffer()
-{
-	return sendBufferData;
-}
-
 const std::string&	ClientSession::sendBuffer() const
 {
 	return sendBufferData;
@@ -91,9 +86,4 @@ bool	ClientSession::popNextLine(std::string& line)
 std::string&	ClientSession::sendBuffer()
 {
 	return sendBufferData;
-}
-
-void	ClientSession::consumeSentBytes(std::size_t sentBytes)
-{
-	sendBufferData.erase(0, sentBytes);
 }

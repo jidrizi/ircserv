@@ -154,51 +154,52 @@ void	Server::receiveFromClient(int clientFd)
 
 void	Server::processClientLine(ClientSession& client, const std::string& line)
 {
-	Command command = parseCommand(line);
-	if (command.commandName.empty())
-		return;
+	handler.processClientLine(client, line);
+	// Command command = parseCommand(line);
+	// if (command.commandName.empty())
+	// 	return;
 
-	if (command.type == CMD_CAP)
-	{
-		handler.handleCap(client, command);
-		return;
-	}
-	if (command.type == CMD_PASS)
-	{
-		handler.handlePass(client, command);
-		return;
-	}
-	if (command.type == CMD_NICK)
-	{
-		handler.handleNick(client, command);
-		tryCompleteRegistration(client);
-		return;
-	}
-	if (command.type == CMD_USER)
-	{
-		handler.handleUser(client, command);
-		tryCompleteRegistration(client);
-		return;
-	}
-	if (command.type == CMD_MODE)
-	{
-		handler.handleMode(client, command);
-		return;
-	}
-	if (command.type == CMD_PING)
-	{
-		if (!command.paramsText.empty())
-			client.sendBuffer() += ":" + host + " PONG :" + command.paramsText + "\r\n";
-		else
-			client.sendBuffer() += ":" + host + " PONG :" + host + "\r\n";
-		return;
-	}
-	if (command.type == CMD_WHOIS)
-	{
-		handler.handleWhois(client, command);
-		return;
-	}
-	handler.handlePreCommandChecks(client, command);
+	// if (command.type == CMD_CAP)
+	// {
+	// 	handler.handleCap(client, command);
+	// 	return;
+	// }
+	// if (command.type == CMD_PASS)
+	// {
+	// 	handler.handlePass(client, command);
+	// 	return;
+	// }
+	// if (command.type == CMD_NICK)
+	// {
+	// 	handler.handleNick(client, command);
+	// 	tryCompleteRegistration(client);
+	// 	return;
+	// }
+	// if (command.type == CMD_USER)
+	// {
+	// 	handler.handleUser(client, command);
+	// 	tryCompleteRegistration(client);
+	// 	return;
+	// }
+	// if (command.type == CMD_MODE)
+	// {
+	// 	handler.handleMode(client, command);
+	// 	return;
+	// }
+	// if (command.type == CMD_PING)
+	// {
+	// 	if (!command.paramsText.empty())
+	// 		client.sendBuffer() += ":" + host + " PONG :" + command.paramsText + "\r\n";
+	// 	else
+	// 		client.sendBuffer() += ":" + host + " PONG :" + host + "\r\n";
+	// 	return;
+	// }
+	// if (command.type == CMD_WHOIS)
+	// {
+	// 	handler.handleWhois(client, command);
+	// 	return;
+	// }
+	// handler.handlePreCommandChecks(client, command);
 }
 
 void	Server::tryCompleteRegistration(ClientSession& client)
