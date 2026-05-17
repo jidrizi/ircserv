@@ -6,7 +6,7 @@
 /*   By: ckappe <ckappe@student.42heilbronn.de>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/15 16:26:57 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/17 17:18:16 by ckappe           ###   ########.fr       */
+/*   Updated: 2026/05/17 17:19:24 by ckappe           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -273,6 +273,141 @@ int     Handles::handleJoin(ClientSession& client, Command& command)
 			channel->getName());
 
 	}
+	return 0;
+}
+
+int	Handles::handleMode(ClientSession& client, Command& command)
+{
+	if (client.user().registrationState < 4)
+		return (client.sendBuffer() += ERR_NOTREGISTERED(server.host), -1);
+	if (command.paramList.empty())
+		return (client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, "MODE"), -1);
+
+	const std::string channelName = command.paramList[0];
+	std::map<std::string, Channel*>::iterator chIt = channels.find(channelName);
+	if (chIt == channels.end())
+		return (client.sendBuffer() += ERR_NOSUCHCHANNEL(server.host, channelName), -1);
+	Channel& channel = *chIt->second;
+
+	if (command.paramList.size() == 1)
+		return (client.sendBuffer() += RPL_CHANNELMODEIS(server.host, channel.getName(),
+			client.user().nickname, server.buildChannelMode(channel)), 0);
+	if (!channel.hasOperator(client.fd()))
+		return (client.sendBuffer() += ERR_NOPRIVILIGES(server.host), -1);
+
+	std::vector<std::string> modeTokens;
+	std::vector<std::string> modeArgs;
+	for (std::size_t i = 1; i < command.paramList.size(); ++i)
+	{
+		const std::string& token = command.paramList[i];
+		if (!token.empty() && (token[0] == '+' || token[0] == '-'))
+			modeTokens.push_back(token);
+		else
+			modeArgs.push_back(token);
+	}
+	if (modeTokens.empty())
+		return (client.sendBuffer() += ERR_UNKNOWNMODE(server.host, command.paramList[1]), -1);
+
+	std::string appliedModes;
+	std::string appliedArgs;
+	std::size_t argIndex = 0;
+	char currentSign = '\0';
+
+	for (std::size_t tokenIndex = 0; tokenIndex < modeTokens.size(); ++tokenIndex)
+	{
+		const std::string& modeFlags = modeTokens[tokenIndex];
+		for (std::size_t i = 0; i < modeFlags.size(); ++i)
+		{
+			const char flag = modeFlags[i];
+			if (flag == '+' || flag == '-')
+			{
+				currentSign = flag;
+				if (appliedModes.empty() || appliedModes[appliedModes.size() - 1] != flag)
+					appliedModes += flag;
+				continue;
+			}
+			if (currentSign != '+' && currentSign != '-')
+				return (client.sendBuffer() += ERR_UNKNOWNMODE(server.host, std::string(1, flag)), -1);
+
+			const bool adding = currentSign == '+';
+			if (flag == 'i')
+			{
+				channel.setInviteOnly(adding);
+				appliedModes += flag;
+			}
+			else if (flag == 't')
+			{
+				channel.setTopicRestricted(adding);
+				appliedModes += flag;
+			}
+			else if (flag == 'k')
+			{
+				if (adding)
+				{
+					if (argIndex >= modeArgs.size())
+						return (client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, "MODE"), -1);
+					channel.setKey(modeArgs[argIndex]);
+					appliedArgs += " " + modeArgs[argIndex];
+					++argIndex;
+				}
+				else
+					channel.clearKey();
+				appliedModes += flag;
+			}
+			else if (flag == 'l')
+			{
+				if (adding)
+				{
+					if (argIndex >= modeArgs.size())
+						return (client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, "MODE"), -1);
+					const std::string& rawLimit = modeArgs[argIndex];
+					for (std::size_t j = 0; j < rawLimit.size(); ++j)
+					{
+						if (!std::isdigit(static_cast<unsigned char>(rawLimit[j])))
+							return (client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, "MODE"), -1);
+					}
+					const int parsedLimit = std::atoi(rawLimit.c_str());
+					if (parsedLimit <= 0)
+						return (client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, "MODE"), -1);
+					channel.setUserLimit(static_cast<std::size_t>(parsedLimit));
+					appliedArgs += " " + rawLimit;
+					++argIndex;
+				}
+				else
+					channel.clearUserLimit();
+				appliedModes += flag;
+			}
+			else if (flag == 'o')
+			{
+				if (argIndex >= modeArgs.size())
+					return (client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, "MODE"), -1);
+				const std::string targetNick = modeArgs[argIndex];
+				ClientSession* target = server.findClientByNick(targetNick);
+				if (!target)
+					return (client.sendBuffer() += ERR_NOSUCHNICK(server.host, client.user().nickname, targetNick), -1);
+				if (!channel.hasMember(target->fd()))
+					return (client.sendBuffer() += ERR_USERNOTINCHANNEL(server.host, targetNick, channelName), -1);
+				if (adding)
+					channel.addOperator(target->fd());
+				else
+				{
+					channel.removeOperator(target->fd());
+					channel.ensureOperator();
+				}
+				appliedModes += flag;
+				appliedArgs += " " + targetNick;
+				++argIndex;
+			}
+			else
+				return (client.sendBuffer() += ERR_UNKNOWNMODE(server.host, std::string(1, flag)), -1);
+		}
+	}
+
+	if (appliedModes.size() <= 1)
+		return 0;
+	const std::string msg = RPL_CHANNELMODEIS(client.user().source(), channel.getName(),
+		client.user().nickname, appliedModes + appliedArgs);
+	broadcastToChannel(channel, msg, -1);
 	return 0;
 }
 
