@@ -6,7 +6,7 @@
 /*   By: ckappe <ckappe@student.42heilbronn.de>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/15 16:26:57 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/17 17:21:06 by ckappe           ###   ########.fr       */
+/*   Updated: 2026/05/17 17:22:39 by ckappe           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,20 @@
 Handles::Handles(Server& serverRef)
 	: server(serverRef)
 {
+}
+
+bool	Handles::isValidChannelName(const std::string& channelName) const
+{
+	if (channelName.empty())
+		return false;
+	if (channelName[0] != '#')
+		return false;
+	for (std::size_t i = 0; i < channelName.size(); ++i)
+	{
+		if (channelName[i] == ' ' || channelName[i] == ',' || channelName[i] == '\a')
+			return false;
+	}
+	return true;
 }
 
 std::vector<std::string> Handles::splitByComma(const std::string& text) const
@@ -531,6 +545,83 @@ int	Handles::handleUser(ClientSession& client, Command& command)
 	client.sendBuffer() += RPL_USER(client.user().hostname, client.user().username);
 	if (client.user().registrationState == 2)
 		client.user().registrationState = 3;
+	return 0;
+}
+
+int	Handles::handleInvite(ClientSession& client, Command& command)
+{
+	const std::string targetNick = command.paramList[0];
+	const std::string channelName = command.paramList[1];
+
+	std::map<std::string, Channel*>::iterator chIt = channels.find(channelName);
+	if (chIt == channels.end())
+	{
+		std::cout << "Error msg" << std::endl;
+		return (-1);
+	}
+	Channel& channel = *chIt->second;
+	if (!channel.hasMember(client.fd()))
+	{
+		std::cout << "Error msg" << std::endl;
+		return (-1);
+	}
+	if (channel.isInviteOnly() && !channel.hasOperator(client.fd()))
+	{
+		std::cout << "Error msg" << std::endl;
+		return (-1);
+	}	
+
+	ClientSession* target = server.findClientByNick(targetNick);
+	if (!target)
+	{
+		std::cout << "Error msg" << std::endl;
+		return (-1);
+	}
+	if (channel.hasMember(target->fd()))
+	{
+		std::cout << "Error msg" << std::endl;
+		return (-1);
+	}
+
+	channel.addInvite(target->fd());
+	std::cout << "To Send RPL_INVITING" << std::endl;
+	std::cout << "To Send RPL_INVITE" << std::endl;
+	return 0;
+}
+
+int	Handles::handlePrivmsg(ClientSession& client, Command& command)
+{
+	std::vector<std::string> targets = splitByComma(command.paramList[0]);
+	const std::string& text = command.paramList[1];
+	for (std::vector<std::string>::iterator it = targets.begin(); it != targets.end(); ++it)
+	{
+		if ((*it)[0] == '#')
+		{
+			std::map<std::string, Channel*>::iterator chIt = channels.find(*it);
+			if (chIt == channels.end())
+			{
+				//send error msg
+				continue;
+			}
+			Channel& channel = *chIt->second;
+			if (!channel.hasMember(client.fd()))
+			{
+				//send error msg
+				continue;
+			}
+			broadcastToChannel(channel, "RPLY_PRIVMSG", client.fd());
+		}
+		else
+		{
+			ClientSession* target = server.findClientByNick(*it);
+			if (!target)
+			{
+				//send error msg
+				continue;
+			}
+			std::cout << "RPLy_PRIVMSG"<< std::endl;
+		}
+	}
 	return 0;
 }
 
