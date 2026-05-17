@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Handles.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ckappe <ckappe@student.42heilbronn.de>     +#+  +:+       +#+        */
+/*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/15 16:26:57 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/17 17:22:39 by ckappe           ###   ########.fr       */
+/*   Updated: 2026/05/17 17:31:19 by fefo             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -215,6 +215,11 @@ int	Handles::handleNick(ClientSession& client, Command& command)
 
 int     Handles::handleJoin(ClientSession& client, Command& command)
 {
+	if (client.user().registrationState < 2)
+	{
+		client.sendBuffer() += ERR_NOTREGISTERED(server.host);
+		return -1;
+	}
 	if (command.paramList.empty())
 		return (client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, "JOIN"), -1);
 
@@ -591,6 +596,13 @@ int	Handles::handleInvite(ClientSession& client, Command& command)
 
 int	Handles::handlePrivmsg(ClientSession& client, Command& command)
 {
+	if (client.user().registrationState < 4)
+		return (client.sendBuffer() += ERR_NOTREGISTERED(server.host), -1);
+	if (command.paramList.empty())
+		return (client.sendBuffer() += ERR_NORECIPIENT(server.host, "PRIVMSG"), -1);
+	if (command.paramList.size() < 2 || command.paramList[1].empty())
+		return (client.sendBuffer() += ERR_NOTEXTTOSEND(server.host, client.user().nickname), -1);
+	
 	std::vector<std::string> targets = splitByComma(command.paramList[0]);
 	const std::string& text = command.paramList[1];
 	for (std::vector<std::string>::iterator it = targets.begin(); it != targets.end(); ++it)
@@ -600,26 +612,26 @@ int	Handles::handlePrivmsg(ClientSession& client, Command& command)
 			std::map<std::string, Channel*>::iterator chIt = channels.find(*it);
 			if (chIt == channels.end())
 			{
-				//send error msg
+				client.sendBuffer() += ERR_NOSUCHCHANNEL(server.host, *it);
 				continue;
 			}
 			Channel& channel = *chIt->second;
 			if (!channel.hasMember(client.fd()))
 			{
-				//send error msg
+				client.sendBuffer() += ERR_CANNOTSENDTOCHAN(server.host, channel.getName());
 				continue;
 			}
-			broadcastToChannel(channel, "RPLY_PRIVMSG", client.fd());
+			broadcastToChannel(channel, RPL_PRIVMSG(client.user().source(), channel.getName(), text), client.fd());
 		}
 		else
 		{
 			ClientSession* target = server.findClientByNick(*it);
 			if (!target)
 			{
-				//send error msg
+				client.sendBuffer() += ERR_NOSUCHNICK(server.host, client.user().nickname, *it);
 				continue;
 			}
-			std::cout << "RPLy_PRIVMSG"<< std::endl;
+			target->sendBuffer() += RPL_PRIVMSG(client.user().source(), target->user().nickname, text);
 		}
 	}
 	return 0;
