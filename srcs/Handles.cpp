@@ -6,7 +6,7 @@
 /*   By: ckappe <ckappe@student.42heilbronn.de>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/15 16:26:57 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/17 17:19:24 by ckappe           ###   ########.fr       */
+/*   Updated: 2026/05/17 17:21:06 by ckappe           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -408,6 +408,92 @@ int	Handles::handleMode(ClientSession& client, Command& command)
 	const std::string msg = RPL_CHANNELMODEIS(client.user().source(), channel.getName(),
 		client.user().nickname, appliedModes + appliedArgs);
 	broadcastToChannel(channel, msg, -1);
+	return 0;
+}
+
+int	Handles::handleKick(ClientSession& client, Command& command)
+{
+		const std::string channelName = command.paramList[0];
+	const std::string reason = command.paramList.size() > 2 ? command.paramList[2] : client.user().nickname;
+	std::map<std::string, Channel*>::iterator chIt = channels.find(channelName);
+	if (chIt == channels.end())
+	{
+		//send error msg
+		return (-1);
+	}
+	Channel& channel = *chIt->second;
+	if (!channel.hasMember(client.fd()))
+	{
+		//send error msg
+		return (-1);
+	}
+	if (!channel.hasOperator(client.fd()))
+	{
+		//send error msg
+		return (-1);
+	}
+
+	std::vector<std::string> targets = splitByComma(command.paramList[1]);
+	for (std::vector<std::string>::iterator it = targets.begin(); it != targets.end(); ++it)
+	{
+		ClientSession* target = server.findClientByNick(*it);
+		if (!target)
+		{
+			//send error
+			continue;
+		}
+		if (!channel.hasMember(target->fd()))
+		{
+			//send error
+			continue;
+		}
+
+		const std::string kickMsg = "RPLY_KICK";
+		broadcastToChannel(channel, kickMsg, -1);
+		channel.removeMember(target->fd());
+	}
+	channel.ensureOperator();
+	if (channel.empty())
+	{
+		delete chIt->second;
+		channels.erase(chIt);
+	}
+	return 0;
+}
+
+int Handles::handleTopic(ClientSession& client, Command& command)
+{
+	if (command.paramList.empty())
+		return (client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, "TOPIC"), -1);
+	const std::string channelName = command.paramList[0];
+	std::string name = "";
+	int i = 1;
+	while (i < command.paramList.size())
+	{
+		name += command.paramList[i];
+		name += " ";
+		i++;
+	}
+	std::map<std::string, Channel*>::iterator chIt = channels.find(channelName);
+	if (chIt == channels.end())
+		return (client.sendBuffer() += ERR_NOSUCHCHANNEL(server.host, channelName), -1);
+	Channel& channel = *chIt->second;
+	if (!channel.hasMember(client.fd()))
+		return (client.sendBuffer() += ERR_NOTONCHANNEL(server.host, channel.getName()), -1);
+	if (name.empty())
+	{
+		if (!channel.getTopic().empty())
+			return (client.sendBuffer() += RPL_TOPIC(server.host, client.user().nickname,
+				channel.getName(), channel.getTopic()), 0);
+		else
+			return (client.sendBuffer() += RPL_NOTOPIC(server.host, client.user().nickname,
+				channel.getName()), 0);
+	}
+	if (channel.isTopicRestricted() && !channel.hasOperator(client.fd()))
+		return (client.sendBuffer() += ERR_CHANOPRIVSNEEDED(server.host, channel.getName()), -1);
+	channel.setTopic(name);
+	broadcastToChannel(channel, RPL_TOPIC(server.host, client.user().nickname,
+		channel.getName(), name), -1);
 	return 0;
 }
 
