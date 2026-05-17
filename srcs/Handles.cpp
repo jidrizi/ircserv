@@ -1,12 +1,106 @@
-# include "Handles.hpp"
-# include "Server.hpp"
-# include "Client.hpp"
-# include "Command.hpp"
-# include "Channel.hpp"
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Handles.cpp                                        :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/05/15 16:26:57 by fefo              #+#    #+#             */
+/*   Updated: 2026/05/17 04:35:52 by fefo             ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+// #include "ft_irc.hpp"
+#include "Handles.hpp"
+#include "Client.hpp"
+#include "Command.hpp"
+#include "Channel.hpp"
+#include "Server.hpp"
+#include "Replies.hpp"
+#include <vector>
 
 Handles::Handles(Server& serverRef)
 	: server(serverRef)
 {
+}
+
+void Handles::processClientLine(ClientSession& client, const std::string& line)
+{
+    Command command = parseCommand(line);
+	if (command.commandName.empty())
+		return;
+
+	if (command.type == CMD_CAP)
+	{
+		handleCap(client, command);
+		return;
+	}
+	if (command.type == CMD_PASS)
+	{
+		handlePass(client, command);
+		return;
+	}
+	if (command.type == CMD_NICK)
+	{
+		handleNick(client, command);
+		server.tryCompleteRegistration(client);
+		return;
+	}
+	if (command.type == CMD_USER)
+	{
+		handleUser(client, command);
+		server.tryCompleteRegistration(client);
+		return;
+	}
+	if (command.type == CMD_JOIN)
+	{
+		handleJoin(client, command);
+		return;
+	}
+	if (command.type == CMD_PART)
+	{
+		handlePart(client, command);
+		return;
+	}
+	if (command.type == CMD_PRIVMSG)
+	{
+		handlePrivmsg(client, command);
+		return;
+	}
+	if (command.type == CMD_INVITE)
+	{
+		handleInvite(client, command);
+		return;
+	}
+	if (command.type == CMD_KICK)
+	{
+		handleKick(client, command);
+		return;
+	}
+	if (command.type == CMD_MODE)
+	{
+		handleMode(client, command);
+		return;
+	}
+	if (command.type == CMD_PING)
+	{
+		if (!command.paramsText.empty())
+			client.sendBuffer() += ":" + server.host + " PONG :" + command.paramsText + "\r\n";
+		else
+			client.sendBuffer() += ":" + server.host + " PONG :" + server.host + "\r\n";
+		return;
+	}
+	if (command.type == CMD_TOPIC)
+	{
+		handleTopic(client, command);
+		return ;
+	}
+	if (command.type == CMD_WHOIS)
+	{
+		handleWhois(client, command);
+		return ;
+	}
+	handlePreCommandChecks(client, command);
 }
 
 
@@ -151,10 +245,12 @@ int	Handles::handlePreCommandChecks(ClientSession& client, Command& command)
 }
 
 // handleMode 
-
-
-
-
+int Handles::handleMode(ClientSession& client, Command& command)
+{
+    (void)client;
+    (void)command;
+    return 0;
+}
 
 int	Handles::handleWhois(ClientSession& client, Command& command)
 {
@@ -181,387 +277,6 @@ int	Handles::handleWhois(ClientSession& client, Command& command)
 			}
 			return (client.sendBuffer() =+ ERR_NOSUCHNICK(server.host, client.user().nickname, nick), -1);
 		}
-	}
-	return 0;
-}
-
-
-int	Handles::handlePart(ClientSession& client, Command& command)
-{
-	if (client.user().registrationState < 4)
-		return (client.sendBuffer() += ERR_NOTREGISTERED(server.host), -1);
-	if (command.paramList.empty())
-		return (client.sendBuffer() += ERR_NEEDMOREPARAMS(server.host, "PART"), -1);
-
-	std::vector<std::string> targets = server.splitByComma(command.paramList[0]);
-	std::string reason = "Leaving";
-	if (command.paramList.size() > 1)
-		reason = command.paramList[1];
-
-	for (std::vector<std::string>::iterator it = targets.begin(); it != targets.end(); ++it)
-	{
-		std::map<std::string, Channel*>::iterator chIt = server.channels.find(*it);
-		if (chIt == server.channels.end())
-		{
-			client.sendBuffer() += ERR_NOSUCHCHANNEL(server.host, *it);
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   Handles.cpp                                        :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: fefo <fefo@student.42.fr>                  +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/05/15 16:26:57 by fefo              #+#    #+#             */
-/*   Updated: 2026/05/16 23:20:23 by fefo             ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
-#include "ft_irc.hpp"
-
-
-void Server::processClientLine(ClientSession& client, const std::string& line)
-{
-    (void)client; (void)line;
-}
-
-std::vector<std::string> Handles::splitByComma(const std::string& text) const
-{
-	std::vector<std::string> values;
-	std::string token;
-	for (std::size_t i = 0; i < text.size(); ++i)
-	{
-		if (text[i] == ',')
-		{
-			if (!token.empty())
-				values.push_back(token);
-			token.clear();
-			continue;
-		}
-		token += text[i];
-	}
-	if (!token.empty())
-		values.push_back(token);
-	return values;
-}
-
-bool	Handles::isValidChannelName(const std::string& channelName) const 
-{
-	if (channelName.empty())
-		return false;
-	if (channelName[0] != '#')
-		return false;
-	for (std::size_t i = 0; i < channelName.size(); ++i)
-	{
-		if (channelName[i] == ' ' || channelName[i] == ',' || channelName[i] == '\a')
-			return false;
-	}
-	return true;
-}
-
-int     Handles::handleJoin(ClientSession& client, Command& command)
-{
-
-    //trying to join multiple channels at the same time
-	std::vector<std::string> targets = splitByComma(command.paramList[0]);
-    for (std::vector<std::string>::iterator it = targets.begin(); it != targets.end(); ++it)
-    {
-        if (!isValidChannelName(*it))
-		{
-            //send error
-			continue;
-		}
-        Channel* channel = NULL;
-        std::map<std::string, Channel*>::iterator chIt = channels.find(*it);
-		if (chIt == channels.end())
-		{
-			channel = new Channel(*it);
-			channels[*it] = channel;
-			if (command.paramList.size() > 1)
-			{
-				std::vector<std::string> keys = splitByComma(command.paramList[1]);
-				if (!keys.empty())
-					channel->setKey(keys[0]);
-			}
-		}
-		else
-			channel = chIt->second;
-
-		if (channel->hasMember(client.fd()))
-			continue;
-
-		if (channel->isInviteOnly() && !channel->isInvited(client.fd()))
-		{
-			//send error
-			continue;
-		}
-		if (channel->isFull())
-		{
-			//send error
-			continue;
-		}
-		if (channel->hasKey())
-		{
-			std::string givenKey;
-			if (command.paramList.size() > 1)
-			{
-				std::vector<std::string> keys = splitByComma(command.paramList[1]);
-				if (!keys.empty())
-					givenKey = keys[0];
-			}
-			if (!channel->keyMatches(givenKey))
-			{
-				//send error
-				continue;
-			}
-		}
-
-		channel->addMember(client.fd());
-		channel->removeInvite(client.fd());
-		if (channel->getMembers().size() == 1)
-			channel->addOperator(client.fd());
-
-	}
-	return 0;
-}
-
-void	Handles::broadcastToChannel(const Channel& channel, const std::string& message, int exceptFd)
-{
-	const std::set<int>& members = channel.getMembers();
-	for (std::set<int>::const_iterator it = members.begin(); it != members.end(); ++it)
-	{
-		if (*it == exceptFd)
-			continue;
-		// sendToClient(*it, message);
-	}
-}
-
-
-int Handles::handleTopic(ClientSession& client, Command& command)
-{
-	const std::string channelName = command.paramList[0];
-	std::string name = "";
-	int i = 1;
-	while (i < command.paramList.size())
-	{
-		name += command.paramList[i];
-		name += " ";
-		i++;
-	}
-	std::map<std::string, Channel*>::iterator chIt = channels.find(channelName);
-	if (chIt == channels.end())
-		return (-1); //send also err msg
-	Channel& channel = *chIt->second;
-	if (!channel.hasMember(client.fd()))
-		return (-1); // errormsg notonchannel
-	if (name.empty())
-	{
-		if (!channel.getTopic().empty())
-			return 0; //rpl topic
-		else
-			return 0; //rpl notopic
-	}
-	if (channel.isTopicRestricted() && !channel.hasOperator(client.fd()))
-		return (-1); //err CHANOPRIVSNEEDED
-	channel.setTopic(name);
-	broadcastToChannel(channel, "RPLMEGGASE", -1); //switch RPLMESSAGE with rpl_topic
-	return 0;
-}
-
-int	Handles::handlePart(ClientSession& client, Command& command)
-{
-	std::vector<std::string> targets = splitByComma(command.paramList[0]);
-	std::string reason = "Leaving";
-	if (command.paramList.size() > 1)
-		reason = command.paramList[1];
-	for (std::vector<std::string>::iterator it = targets.begin(); it != targets.end(); ++it)
-	{
-		std::map<std::string, Channel*>::iterator chIt = channels.find(*it);
-		if (chIt == channels.end())
-		{
-			//send error
-			continue;
-		}
-		Channel& channel = *chIt->second;
-		if (!channel.hasMember(client.fd()))
-		{
-			client.sendBuffer() += ERR_NOTONCHANNEL(server.host, channel.getName());
-			continue;
-		}
-
-		// Remove leaving user first, then let channel promote only if needed
-		channel.removeMember(client.fd());
-
-		const int newOpFd = channel.ensureOperator();
-		if (newOpFd != -1)
-		{
-			ClientSession* newOp = server.findClientByFd(newOpFd);
-			if (newOp)
-			{
-				std::string modeMsg =
-					":" + newOp->user().source() +
-					" MODE " + channel.getName() +
-					" +o " + newOp->user().nickname +
-					"\r\n";
-				server.broadcastToChannel(channel, modeMsg, -1);
-			}
-		}
-
-		// PART broadcast after channel state is updated
-		const std::string partMsg =
-			RPL_PART(client.user().source(), channel.getName(), reason);
-		server.broadcastToChannel(channel, partMsg, -1);
-
-		// Cleanup channel if empty
-		if (channel.empty())
-		{
-			delete chIt->second;
-			server.channels.erase(chIt);
-		}
-			//send err
-			continue;
-		}
-
-		const std::string partMsg = "rply PART";
-		broadcastToChannel(channel, partMsg, -1);
-		channel.removeMember(client.fd());
-		channel.ensureOperator();
-		if (channel.empty())
-		{
-			delete chIt->second;
-			channels.erase(chIt);
-		}
-	}
-	return 0;
-}
-
-
-int	Handles::handlePrivmsg(ClientSession& client, Command& command)
-{
-	std::vector<std::string> targets = splitByComma(command.paramList[0]);
-	const std::string& text = command.paramList[1];
-	for (std::vector<std::string>::iterator it = targets.begin(); it != targets.end(); ++it)
-	{
-		if ((*it)[0] == '#')
-		{
-			std::map<std::string, Channel*>::iterator chIt = channels.find(*it);
-			if (chIt == channels.end())
-			{
-				//error msg
-				continue;
-			}
-			Channel& channel = *chIt->second;
-			if (!channel.hasMember(client.fd()))
-			{
-				//error msg
-				continue;
-			}
-			std::cout << "PRIVMSG sent" << std::endl;
-		}
-		else
-		{
-			// if ()
-			// {
-				//error msg
-				continue;
-			// }
-		}
-	}
-	return 0;
-}
-
-ClientSession* Handles::findClientByNick(const std::string& nickname)
-{
-  (void)nickname;
-  return NULL;
-}
-
-int	Handles::handleInvite(ClientSession& client, Command& command)
-{
-	const std::string targetNick = command.paramList[0];
-	const std::string channelName = command.paramList[1];
-
-	std::map<std::string, Channel*>::iterator chIt = channels.find(channelName);
-	if (chIt == channels.end())
-	{
-		std::cout << "Error msg" << std::endl;
-		return (-1);
-	}
-	Channel& channel = *chIt->second;
-	if (!channel.hasMember(client.fd()))
-	{
-		std::cout << "Error msg" << std::endl;
-		return (-1);
-	}
-	if (channel.isInviteOnly() && !channel.hasOperator(client.fd()))
-	{
-		std::cout << "Error msg" << std::endl;
-		return (-1);
-	}	
-
-	ClientSession* target = findClientByNick(targetNick);
-	if (!target)
-	{
-		std::cout << "Error msg" << std::endl;
-		return (-1);
-	}
-	if (channel.hasMember(target->fd()))
-	{
-		std::cout << "Error msg" << std::endl;
-		return (-1);
-	}
-
-	channel.addInvite(target->fd());
-	std::cout << "To Send RPL_INVITING" << std::endl;
-	std::cout << "To Send RPL_INVITE" << std::endl;
-	return 0;
-}
-
-int	Handles::handleKick(ClientSession& client, Command& command)
-{
-		const std::string channelName = command.paramList[0];
-	const std::string reason = command.paramList.size() > 2 ? command.paramList[2] : client.user().nickname;
-	std::map<std::string, Channel*>::iterator chIt = channels.find(channelName);
-	if (chIt == channels.end())
-	{
-		//send error msg
-		return (-1);
-	}
-	Channel& channel = *chIt->second;
-	if (!channel.hasMember(client.fd()))
-	{
-		//send error msg
-		return (-1);
-	}
-	if (!channel.hasOperator(client.fd()))
-	{
-		//send error msg
-		return (-1);
-	}
-
-	std::vector<std::string> targets = splitByComma(command.paramList[1]);
-	for (std::vector<std::string>::iterator it = targets.begin(); it != targets.end(); ++it)
-	{
-		ClientSession* target = findClientByNick(*it);
-		if (!target)
-		{
-			//send error
-			continue;
-		}
-		if (!channel.hasMember(target->fd()))
-		{
-			//send error
-			continue;
-		}
-
-		const std::string kickMsg = "RPLY_KICK";
-		broadcastToChannel(channel, kickMsg, -1);
-		channel.removeMember(target->fd());
-	}
-	channel.ensureOperator();
-	if (channel.empty())
-	{
-		delete chIt->second;
-		channels.erase(chIt);
 	}
 	return 0;
 }
